@@ -73,7 +73,7 @@ impl FileObject {
         let dupe_count = self.get_true_duplicates()?;
         let known_keys: Vec<usize>;
         if calculate_known_keys {
-            known_keys = self.get_known_keys()?;
+            known_keys = self.get_known_keys(Some(dupe_count))?;
         } else {
             known_keys = vec![];
         }
@@ -126,15 +126,16 @@ impl FileObject {
     }
 
 
-    fn get_known_keys(&self) -> Result<Vec<usize>, Box<dyn Error>> {
+    fn get_known_keys(&self, dupe_count: Option<usize>) -> Result<Vec<usize>, Box<dyn Error>> {
         // Find keys from the top down -- if removing a single column leads to an increase in duplicates
         // then we know that the column is necessary and should be considered part of the primary key set.
         // POTENTIAL ERROR: the only case in which this may not work is if two keys increase duplicate rows but the duplicates of one key are a subset of duplicates from the other.
         // That case should be extremely rare, but the code should be still be adjusted to account for that.
-        let mut test_set: Vec<Vec<usize>> = Vec::new();
-        for index in 0..self.total_columns {
-            test_set.extend(vec![(0..self.total_columns).filter(|column_num| column_num != &index).collect()]);
-        }
+        
+        // let mut test_set: Vec<Vec<usize>> = Vec::new();
+        // for index in 0..self.total_columns {
+        //     test_set.extend(vec![(0..self.total_columns).filter(|column_num| column_num != &index).collect()]);
+        // }
         
         let mut known_keys: Vec<usize> = vec![];
         let mut testset: Vec<HashSet<u64>> = vec![HashSet::with_capacity(self.total_rows); self.total_columns];
@@ -161,7 +162,7 @@ impl FileObject {
             }
         }
         for (i, x) in duplicates.iter().enumerate() {
-            if x > &0 {
+            if x > &dupe_count.unwrap_or(0) {
                 known_keys.push(i.clone())
             }
         }

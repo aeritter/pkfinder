@@ -12,6 +12,7 @@ use crate::file_object::FileObject;
 #[derive(Debug, StructOpt)]
 #[structopt(name = "Primary Key finder", about = "Takes a csv file and searches for the best columns (that give the fewest duplicates) to use as Primary Keys.")]
 struct Config {
+    /// Location of the file to process
     file: String,
 
     /// Find duplicates for the given set of column numbers separated by spaces.
@@ -42,7 +43,7 @@ fn main() {
         } else {
             // convert to 0-based indexing
             let test_set: Vec<usize> = options.specific_columns.iter().map(|x| x - 1).collect();
-            println!("Testing these columns: {:?}", data.header_index_to_string(options.specific_columns));
+            println!("Testing these columns: {:?}", data.header_index_to_string(test_set.clone()));
             println!("Duplicates found: {:?}", data.get_columnset_duplicates(&test_set).unwrap())
         }
     } else if options.calculate_known_keys {
