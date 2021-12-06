@@ -1,7 +1,7 @@
 use std::{collections::{HashSet, hash_map::DefaultHasher}, error::Error, hash::Hasher};
 use crate::file_object::FileObject;
 
-pub fn get_known_keys(file_object: &FileObject, dupe_count: Option<usize>) -> Result<Vec<usize>, Box<dyn Error>> {
+pub fn get_known_keys(file_object: &FileObject, dupe_count: usize) -> Result<Vec<usize>, Box<dyn Error>> {
     // Find keys from the top down -- if removing a single column leads to an increase in duplicates
     // then we know that the column is necessary and should be considered part of the primary key set.
     // POTENTIAL ERROR: the only case in which this may not work is if two keys increase duplicate rows but the duplicates of one key are a subset of duplicates from the other.
@@ -37,7 +37,7 @@ pub fn get_known_keys(file_object: &FileObject, dupe_count: Option<usize>) -> Re
         }
     }
     for (i, x) in duplicates.iter().enumerate() {
-        if x > &dupe_count.unwrap_or(0) {
+        if x > &dupe_count {
             known_keys.push(i.clone())
         }
     }

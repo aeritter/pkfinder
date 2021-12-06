@@ -3,11 +3,9 @@ use itertools::Itertools;
 use crate::{file_object::FileObject, common::{sort_and_convert_to_offset}};
 
 
-pub fn get_pk(file_object: &FileObject, known_keys: Vec<usize>) -> Result<Vec<String>, Box<dyn Error>> {
-    let dupe_count = file_object.get_duplicate_row_count()?;
-
+pub fn get_pk(file_object: &FileObject, dupe_count: usize, known_keys: Vec<usize>) -> Result<Vec<String>, Box<dyn Error>> {
     // Return if the known keys make up the primary key
-    if known_keys.len() > 0 && !contains_duplicates(file_object, &known_keys, Some(dupe_count))? {
+    if known_keys.len() > 0 && !contains_duplicates(file_object, &known_keys, dupe_count)? {
         let result = file_object.header_index_to_string(&known_keys);
         return Ok(result)
     }
@@ -25,7 +23,7 @@ pub fn get_pk(file_object: &FileObject, known_keys: Vec<usize>) -> Result<Vec<St
             let mut new_combination: Vec<usize> = combination.clone();
             new_combination.extend_from_slice(&known_keys);
             new_combination.sort_unstable();
-            if !contains_duplicates(file_object, &new_combination, Some(dupe_count))? {
+            if !contains_duplicates(file_object, &new_combination, dupe_count)? {
                 let result = file_object.header_index_to_string(&new_combination);
                 return Ok(result);
             }
@@ -34,7 +32,7 @@ pub fn get_pk(file_object: &FileObject, known_keys: Vec<usize>) -> Result<Vec<St
     return Err("PK not found")?;
 }
 
-fn contains_duplicates(file_object: &FileObject, column_numbers: &Vec<usize>, dupe_count: Option<usize>) -> Result<bool, Box<dyn Error>> {
+fn contains_duplicates(file_object: &FileObject, column_numbers: &Vec<usize>, dupe_count: usize) -> Result<bool, Box<dyn Error>> {
     let column_offset = sort_and_convert_to_offset(column_numbers);
     let mut testset: HashSet<u64> = HashSet::with_capacity(file_object.total_rows);
     let mut duplicates: usize = 0;
@@ -51,7 +49,7 @@ fn contains_duplicates(file_object: &FileObject, column_numbers: &Vec<usize>, du
         let val = s.finish();
         if testset.insert(val) != true {
             duplicates += 1;
-            if duplicates > dupe_count.unwrap_or(0) { //short-circuit to avoid unnecessary checks
+            if duplicates > dupe_count { //short-circuit to avoid unnecessary checks
                 answer = true;
                 break;
             }
