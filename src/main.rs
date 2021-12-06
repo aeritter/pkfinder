@@ -1,10 +1,13 @@
 mod file_object;
+mod common;
+mod calculators;
 extern crate itertools;
 extern crate structopt;
 use std::path::Path;
 use std::time::SystemTime;
 use itertools::any;
 use structopt::StructOpt;
+use crate::calculators::{get_columnset_duplicates, get_pk, get_known_keys};
 use crate::file_object::FileObject;
 
 
@@ -44,12 +47,14 @@ fn main() {
             // convert to 0-based indexing
             let test_set: Vec<usize> = options.specific_columns.iter().map(|x| x - 1).collect();
             println!("Testing these columns: {:?}", data.header_index_to_string(test_set.clone()));
-            println!("Duplicates found: {:?}", data.get_columnset_duplicates(&test_set).unwrap())
+            println!("Duplicates found: {:?}", get_columnset_duplicates(&data, &test_set).unwrap())
         }
     } else if options.calculate_known_keys {
-        println!("Primary Key Combination: {:?}", data.get_pk(true).expect("Couldn't find primary key combination."))
+        let duplicate_row_count = data.get_duplicate_row_count().expect("Could not count rows.");
+        let known_keys = get_known_keys(&data, Some(duplicate_row_count)).expect("Could not calculate known keys.");
+        println!("Primary Key Combination: {:?}", get_pk(&data, known_keys).expect("Couldn't find primary key combination."))
     } else if !options.file.is_empty() {
-        println!("Primary Key Combination: {:?}", data.get_pk(false).expect("Couldn't find primary key combination."))
+        println!("Primary Key Combination: {:?}", get_pk(&data, vec![]).expect("Couldn't find primary key combination."))
     }
     println!();
 
