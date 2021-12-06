@@ -8,7 +8,7 @@ pub fn get_pk(file_object: &FileObject, known_keys: Vec<usize>) -> Result<Vec<St
 
     // Return if the known keys make up the primary key
     if known_keys.len() > 0 && !contains_duplicates(file_object, &known_keys, Some(dupe_count))? {
-        let result = file_object.header_index_to_string(known_keys);
+        let result = file_object.header_index_to_string(&known_keys);
         return Ok(result)
     }
 
@@ -26,7 +26,7 @@ pub fn get_pk(file_object: &FileObject, known_keys: Vec<usize>) -> Result<Vec<St
             new_combination.extend_from_slice(&known_keys);
             new_combination.sort_unstable();
             if !contains_duplicates(file_object, &new_combination, Some(dupe_count))? {
-                let result = file_object.header_index_to_string(new_combination);
+                let result = file_object.header_index_to_string(&new_combination);
                 return Ok(result);
             }
         }

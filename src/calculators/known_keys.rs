@@ -1,8 +1,5 @@
 use std::{collections::{HashSet, hash_map::DefaultHasher}, error::Error, hash::Hasher};
-
 use crate::file_object::FileObject;
-
-
 
 pub fn get_known_keys(file_object: &FileObject, dupe_count: Option<usize>) -> Result<Vec<usize>, Box<dyn Error>> {
     // Find keys from the top down -- if removing a single column leads to an increase in duplicates
@@ -46,8 +43,6 @@ pub fn get_known_keys(file_object: &FileObject, dupe_count: Option<usize>) -> Re
     }
     Ok(known_keys)
 }
-
-
 
 // fn get_known_keys_old(&self, dupe_count: Option<usize>) -> Result<Vec<usize>, Box<dyn Error>> {
 //     // Find known keys one at a time -- iterates over the entire file for every column set. Slower than iterating

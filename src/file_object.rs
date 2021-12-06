@@ -82,21 +82,24 @@ impl FileObject {
     }
 
     
-    pub fn header_index_to_string(&self, column_numbers: Vec<usize>) -> Vec<String> {
+    pub fn header_index_to_string(&self, column_numbers: &Vec<usize>) -> Vec<String> {
         column_numbers.iter().map(|x| self.headers[*x].clone()).collect()
     }
 
 
     pub fn print_details(&self) {
-        // println!("Newline format: {:?}", self.newline);
+        println!("Newline format: {:?}", self.newline);
         println!("Delimiter: {:?}", self.delim);
         println!("Column count: {:?}", self.total_columns);
         println!("Row count: {:?}", self.total_rows);
     }
 
-
-    pub fn get_total_columns(&self) -> usize {
-        return self.total_columns.clone();
+    pub fn print_column_numbers(&self) {
+        println!();
+        for (index, column) in self.headers.iter().enumerate() {
+            println!("{}: {}", index+1, column)
+        }
+        println!();
     }
 
 }

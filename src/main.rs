@@ -28,7 +28,15 @@ struct Config {
 
     /// Print file details (delimiter, column & row counts)
     #[structopt(short, long)]
-    properties: bool
+    properties: bool,
+
+    /// Print file details (delimiter, column & row counts)
+    #[structopt(short = "n", long)]
+    column_numbers: bool,
+
+    /// Debugging (only displays total run time at the moment)
+    #[structopt(short, long)]
+    debug: bool
 }
 
 
@@ -40,13 +48,21 @@ fn main() {
     println!("Using file: {}\n", Path::new(& options.file).file_name().unwrap().to_str().unwrap());
     let data = FileObject::new(&options.file);
     
+    if options.properties {
+        data.print_details();
+    }
+
+    if options.column_numbers {
+        data.print_column_numbers()
+    }
+
     if !options.specific_columns.is_empty() {
         if any(&options.specific_columns, |x| x < &1) {
-            println!("All specified columns must be between 1 and {}.", data.get_total_columns());
+            println!("All specified columns must be between 1 and {}.", data.total_columns);
         } else {
             // convert to 0-based indexing
             let test_set: Vec<usize> = options.specific_columns.iter().map(|x| x - 1).collect();
-            println!("Testing these columns: {:?}", data.header_index_to_string(test_set.clone()));
+            println!("Testing these columns: {:?}", data.header_index_to_string(&test_set));
             println!("Duplicates found: {:?}", get_columnset_duplicates(&data, &test_set).unwrap())
         }
     } else if options.calculate_known_keys {
@@ -58,8 +74,7 @@ fn main() {
     }
     println!();
 
-    if options.properties {
-        data.print_details();
+    if options.debug {
         println!("Total run time: {:?}\n", SystemTime::now().duration_since(ctime).unwrap())
     }
 }
