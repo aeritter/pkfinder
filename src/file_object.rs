@@ -43,7 +43,7 @@ impl FileObject {
             // regex: Non-word, non-space, non-period value is grabbed, where it's followed by a quote or word character, followed by anything, then mirrored (palindrome)
             // if the value grabbed at the front is equivalent to the value grabbed at the back, add that value as a potential delimiter, then attempt
             // to use the value that appeared the most as the delimiter.
-            let regex_string = Regex::new(r#"(?P<delim1>[^\w \.])(?:"|\w).*?(?:"|\w)(?P<delim2>[^\w \.])"#).unwrap();
+            let regex_string = Regex::new(r#"(?P<delim1>[^\w \.\\"])(?:"|\w).*?(?:"|\w)(?P<delim2>[^\w \.\\"])"#).unwrap();
             let mut delim_hashmap = HashMap::new();
             for row in &delim_finding_data {
                 for result in regex_string.captures_iter(&row) {
