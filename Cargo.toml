@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 itertools = "*"
 structopt = "*"
+csv = "1.1"
+regex = "1.5.2"

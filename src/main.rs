@@ -11,7 +11,10 @@ use crate::file_object::FileObject;
 
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "Primary Key finder", about = "Takes a csv file and searches for the best columns (that give the fewest duplicates) to use as Primary Keys.")]
+#[structopt(name = "Primary Key finder", about = "Assists with finding the best primary key combination for a given dataset.\n
+WARNING: The given Primary Key combination is simply the smallest combination of columns that result in as few duplicates as possible. \
+You will have to look at the data itself and understand what the data means to determine if the result given needs to be adjusted.
+", author = "by Andrew Ritter")]
 struct Config {
     /// Location of the file to process
     file: String,

@@ -7,17 +7,12 @@ pub fn get_known_keys(file_object: &FileObject, dupe_count: usize) -> Result<Vec
     // POTENTIAL ERROR: the only case in which this may not work is if two keys increase duplicate rows but the duplicates of one key are a subset of duplicates from the other.
     // That case should be extremely rare, but the code should be still be adjusted to account for that.
     
-    // let mut test_set: Vec<Vec<usize>> = Vec::new();
-    // for index in 0..self.total_columns {
-    //     test_set.extend(vec![(0..self.total_columns).filter(|column_num| column_num != &index).collect()]);
-    // }
-    
     let mut known_keys: Vec<usize> = vec![];
     let mut testset: Vec<HashSet<u64>> = vec![HashSet::with_capacity(file_object.total_rows); file_object.total_columns];
     let mut duplicates: Vec<usize> = vec![0; file_object.total_columns];
     let rowiterator = file_object.data.lines();
     for row in rowiterator {
-        let splitrow = row.split(&file_object.delim);
+        let splitrow = row.split(&file_object.internal_delimiter);
         let mut hasher_set: Vec<DefaultHasher> = vec![DefaultHasher::new(); file_object.total_columns];
         // add contents of all fields to the hasher, except for fields where the column number matches the set number
         for (colnum, contents) in splitrow.enumerate() {
