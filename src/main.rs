@@ -5,7 +5,7 @@ use std::path::Path;
 use std::time::SystemTime;
 use itertools::any;
 use structopt::StructOpt;
-use crate::calculators::{get_columnset_duplicates, get_pk, get_known_keys};
+use crate::calculators::{get_columnset_duplicates, get_pk, get_known_keys, get_duplicates_count};
 use crate::file_object::FileObject;
 
 
@@ -26,6 +26,14 @@ struct Config {
     /// Calculate known keys first. Faster if the result has many primary keys.
     #[structopt(short)]
     calculate_known_keys: bool,
+
+    /// Output duplicate count for header combinations to the specified file.
+    #[structopt(short, long = "output_path", default_value = "")]
+    output_combination_size_to_file: String,
+
+    /// Set max combination size for duplicate count (-o option), defaults to 5 otherwise
+    #[structopt(short, long, default_value = "5")]
+    max_combination_size: usize,
 
     /// Print file details (delimiter, column & row counts)
     #[structopt(short, long)]
@@ -71,6 +79,8 @@ fn main() {
         let known_keys = get_known_keys(&data, duplicate_row_count).expect("Could not calculate known keys.");
         println!("\nKnown keys: {:?}", data.header_index_to_string(&known_keys));
         println!("\nPrimary Key Combination: {:?}", get_pk(&data, duplicate_row_count, known_keys).expect("Couldn't find primary key combination."))
+    } else if !options.output_combination_size_to_file.is_empty() {
+        get_duplicates_count(&data, options.output_combination_size_to_file, options.max_combination_size).expect("Encountered a problem while running the output combination option.");
     } else if !options.file.is_empty() {
         let duplicate_row_count = data.get_duplicate_row_count().unwrap_or(0);
         println!("\nPrimary Key Combination: {:?}", get_pk(&data, duplicate_row_count, vec![]).expect("Couldn't find primary key combination."))
