@@ -20,6 +20,7 @@ struct Config {
     file: String,
 
     /// Find duplicates for the given set of column numbers separated by spaces.
+    /// Example: -s 1 3 4 8
     #[structopt(short, long)]
     specific_columns: Vec<usize>,
 
@@ -28,10 +29,10 @@ struct Config {
     calculate_known_keys: bool,
 
     /// Output duplicate count for header combinations to the specified file.
-    #[structopt(short, long = "output_path", default_value = "")]
-    output_combination_size_to_file: String,
+    #[structopt(short, long = "output_path")]
+    output_combination_size_to_file: Option<String>,
 
-    /// Set max combination size for duplicate count (-o option), defaults to 5 otherwise
+    /// Set max combination size for duplicate count (-o option)
     #[structopt(short, long, default_value = "5")]
     max_combination_size: usize,
 
@@ -79,8 +80,8 @@ fn main() {
         let known_keys = get_known_keys(&data, duplicate_row_count).expect("Could not calculate known keys.");
         println!("\nKnown keys: {:?}", data.header_index_to_string(&known_keys));
         println!("\nPrimary Key Combination: {:?}", get_pk(&data, duplicate_row_count, known_keys).expect("Couldn't find primary key combination."))
-    } else if !options.output_combination_size_to_file.is_empty() {
-        get_duplicates_count(&data, options.output_combination_size_to_file, options.max_combination_size).expect("Encountered a problem while running the output combination option.");
+    } else if let Some(output_to_file) = options.output_combination_size_to_file {
+        get_duplicates_count(&data, output_to_file, options.max_combination_size).expect("Encountered a problem while running the output combination option.");
     } else if !options.file.is_empty() {
         let duplicate_row_count = data.get_duplicate_row_count().unwrap_or(0);
         println!("\nPrimary Key Combination: {:?}", get_pk(&data, duplicate_row_count, vec![]).expect("Couldn't find primary key combination."))
