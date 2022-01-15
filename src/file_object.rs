@@ -27,7 +27,7 @@ impl FileObject {
         let delimiter_types = vec![",", "\t"];
         let file_reader = File::open(file_path).unwrap();
         let reader = BufReader::new(file_reader);
-        let delim_finding_data: Vec<String> = reader.lines().take(5).map(|x| x.unwrap()).collect();
+        let delim_finding_data: Vec<String> = reader.lines().take(5).map(|x| x.expect("Expected UTF-8 file encoding")).collect();
         for delim in delimiter_types {
             if delim_finding_data[0].contains(delim) {
                 let delim_test_count: Vec<usize> = delim_finding_data.iter()
@@ -88,7 +88,7 @@ impl FileObject {
         let num_of_rows = file_contents.lines().count();
 
         let newline_types = vec!["\r\n", "\r", "\n"];
-        let testdata = &file_contents[0..1000];
+        let testdata: &str = &file_contents.chars().take(1000).join("");
         let mut newline_type: String = String::new();
         for newline in newline_types {
             if testdata.contains(newline) {
@@ -129,8 +129,9 @@ impl FileObject {
         let rows = self.data.lines();
         let num_of_rows = rows.clone().count();
         let mut datahashset = HashSet::with_capacity(num_of_rows);
-        rows.into_iter()
-            .all(|x| datahashset.insert(generate_hash_from_str(x)));
+        for row in rows.into_iter() {
+            datahashset.insert(generate_hash_from_str(row));
+        }
         let dupecount = num_of_rows - datahashset.len();
         // creating a vec to sort() and dedup() is 4x slower than using a hashset.
         println!("Total true duplicates: {}", dupecount);
