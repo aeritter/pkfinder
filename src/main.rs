@@ -5,7 +5,7 @@ use std::path::Path;
 use std::time::SystemTime;
 use itertools::any;
 use structopt::StructOpt;
-use crate::calculators::{get_columnset_duplicates, get_pk, get_known_keys, get_duplicates_count};
+use crate::calculators::{get_columnset_duplicates_count, save_columnset_duplicates, get_pk, get_known_keys, get_duplicates_count};
 use crate::file_object::FileObject;
 
 
@@ -28,7 +28,7 @@ struct Config {
     #[structopt(short)]
     calculate_known_keys: bool,
 
-    /// Output duplicate count for header combinations to the specified file.
+    /// Output duplicate count for header combinations to the specified file. If used with -s, will instead write a sorted list of the duplicates found.
     #[structopt(short, long = "output_path")]
     output_combination_size_to_file: Option<String>,
 
@@ -66,6 +66,7 @@ fn main() {
         data.print_column_numbers()
     }
 
+    // Run specific columns
     if !options.specific_columns.is_empty() {
         if any(&options.specific_columns, |x| x < &1) {
             println!("All specified columns must be between 1 and {}.", data.total_columns);
@@ -73,7 +74,13 @@ fn main() {
             // convert to 0-based indexing
             let test_set: Vec<usize> = options.specific_columns.iter().map(|x| x - 1).collect();
             println!("Testing these columns: {:?}", data.header_index_to_string(&test_set));
-            println!("Duplicates found: {:?}", get_columnset_duplicates(&data, &test_set).unwrap())
+
+            // Write duplicates to file if output option given
+            if let Some(output_to_file) = options.output_combination_size_to_file {
+                println!("\nWrote duplicates to file: {:?}\nDuplicates found: {:?}", output_to_file, save_columnset_duplicates(&data, &test_set, &output_to_file).unwrap())
+            } else {
+                println!("\nDuplicates found: {:?}", get_columnset_duplicates_count(&data, &test_set).unwrap())
+            }
         }
     } else if options.calculate_known_keys {
         let duplicate_row_count = data.get_duplicate_row_count().unwrap_or(0);
