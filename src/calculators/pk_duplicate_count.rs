@@ -3,7 +3,7 @@ use itertools::Itertools;
 use crate::{file_object::FileObject, common::{sort_and_convert_to_offset}};
 
 
-pub fn get_duplicates_count(file_object: &FileObject, output_file_location: String, max_combination_size: usize) -> Result<(), Box<dyn Error>> {
+pub fn get_duplicates_count(file_object: &FileObject, output_file_location: &String, max_combination_size: usize) -> Result<(), Box<dyn Error>> {
     if max_combination_size > file_object.total_columns {
         let errmsg = format!("Given max combination size is larger than the total number of columns available: {}", file_object.total_columns);
         return Err(errmsg)?;

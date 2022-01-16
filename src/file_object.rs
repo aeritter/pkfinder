@@ -15,7 +15,7 @@ pub struct FileObject {
 
 
 impl FileObject {
-    pub fn new(file_path: &str) -> FileObject {
+    pub fn new(file_path: &str) -> Result<FileObject, Box<dyn Error>> {
         
         let file_contents: String;
 
@@ -25,7 +25,7 @@ impl FileObject {
         let internal_delimiter: String;
 
         let delimiter_types = vec![",", "\t"];
-        let file_reader = File::open(file_path).unwrap();
+        let file_reader = File::open(file_path)?;
         let reader = BufReader::new(file_reader);
         let delim_finding_data: Vec<String> = reader.lines().take(5).map(|x| x.expect("Expected UTF-8 file encoding")).collect();
         for delim in delimiter_types {
@@ -107,15 +107,17 @@ impl FileObject {
 
             
 
-        FileObject {
-            data: file_contents,
-            newline: newline_type,
-            delim: delimiter_type,
-            internal_delimiter: internal_delimiter,
-            total_columns: total_columns,
-            headers: headers,
-            total_rows: num_of_rows,
-        }
+        Ok(
+            FileObject {
+                data: file_contents,
+                newline: newline_type,
+                delim: delimiter_type,
+                internal_delimiter: internal_delimiter,
+                total_columns: total_columns,
+                headers: headers,
+                total_rows: num_of_rows,
+            }
+        )
     }
 
 
@@ -156,7 +158,6 @@ impl FileObject {
         for (index, column) in self.headers.iter().enumerate() {
             println!("{}: {}", index+1, column)
         }
-        println!();
     }
 
 }
