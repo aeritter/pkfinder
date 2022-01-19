@@ -73,7 +73,7 @@ struct ColumnSetOptions {
 #[derive(Debug, StructOpt)]
 struct Output {
     #[structopt(short, long = "output_path")]
-    outfile: String,
+    outfile: Option<String>,
 }
 
 
@@ -105,7 +105,7 @@ fn main() {
                 println!("\nPrimary Key Combination: {:?}", get_pk(&data, duplicate_row_count, known_keys).expect("Couldn't find primary key combination."))
             };
             match &opt.output {
-                Some(output_location) => get_duplicates_count(&data, &output_location.outfile, opt.max_combination_size).expect("Encountered a problem while running the output combination option."),
+                Some(output_location) => get_duplicates_count(&data, &output_location.outfile.as_ref().unwrap(), opt.max_combination_size).expect("Encountered a problem while running the output combination option."),
                 None => {
                     let duplicate_row_count = data.get_duplicate_row_count().unwrap_or(0);
                     println!("\nPrimary Key Combination: {:?}", get_pk(&data, duplicate_row_count, vec![]).expect("Couldn't find primary key combination."));
@@ -125,7 +125,7 @@ fn main() {
 
             // Write duplicates to file if output option given
             match &opt.output {
-                Some(output_location) => println!("\nWrote duplicates to file: {:?}\nDuplicates found: {:?}", &output_location.outfile, save_columnset_duplicates(&data, &test_set, &output_location.outfile).unwrap()),
+                Some(output_location) => println!("\nWrote duplicates to file: {:?}\nDuplicates found: {:?}", &output_location.outfile, save_columnset_duplicates(&data, &test_set, &output_location.outfile.as_ref().unwrap()).unwrap()),
                 None => println!("\nDuplicates found: {:?}", get_columnset_duplicates_count(&data, &test_set).unwrap())
             }            
         },
