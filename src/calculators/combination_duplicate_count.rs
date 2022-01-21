@@ -12,7 +12,7 @@ pub fn get_columnset_duplicates_count(file_object: &FileObject, column_numbers: 
         // computes for one set of column numbers on each row
         // could be sped up by working on multiple sets per row so we don't iterate over each row for every set
         let mut s = DefaultHasher::new();
-        let mut splitrow = row.split(&file_object.delim);
+        let mut splitrow = row.split(&file_object.internal_delimiter);
         for x in &column_offset {
             s.write(splitrow.nth(*x).unwrap().as_bytes())
         }
