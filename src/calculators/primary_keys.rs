@@ -1,6 +1,7 @@
 use std::{error::Error, collections::{HashSet, hash_map::DefaultHasher}, hash::Hasher};
 use itertools::Itertools;
 use crate::{file_object::FileObject, common::{sort_and_convert_to_offset}};
+use rayon::prelude::*;
 
 
 pub fn get_pk(file_object: &FileObject, dupe_count: usize, known_keys: Vec<usize>) -> Result<Vec<String>, Box<dyn Error>> {
@@ -16,17 +17,25 @@ pub fn get_pk(file_object: &FileObject, dupe_count: usize, known_keys: Vec<usize
     // until we find all of our keys.
     let columns_to_check: Vec<usize> = (0..file_object.total_columns).filter(|x| !known_keys.contains(x)).collect();
     for combination_size in 1..file_object.total_columns-known_keys.len() {
-        for combination in columns_to_check.clone().into_iter().combinations(combination_size) {
-            // if combination is superset of known match, then {
-            //     continue
-            // }
-            let mut new_combination: Vec<usize> = combination.clone();
-            new_combination.extend_from_slice(&known_keys);
-            new_combination.sort_unstable();
-            if !contains_duplicates(file_object, &new_combination, dupe_count)? {
-                let result = file_object.header_index_to_string(&new_combination);
-                return Ok(result);
-            }
+        let answer = columns_to_check.clone()
+            .into_iter()
+            .combinations(combination_size)
+            .par_bridge()
+            .find_map_any(|combination| 
+                {
+                    let mut new_combination: Vec<usize> = combination.clone();
+                    new_combination.extend_from_slice(&known_keys);
+                    new_combination.sort_unstable();
+                    if !contains_duplicates(file_object, &new_combination, dupe_count).unwrap() {
+                        let result = file_object.header_index_to_string(&new_combination);
+                        return Some(result);
+                    } else {
+                        return None;
+                    }
+                }
+            );
+        if answer.is_some() {
+            return Ok(answer.unwrap());
         }
     }
     return Err("PK not found")?;

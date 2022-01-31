@@ -1,5 +1,9 @@
-use std::{collections::{HashSet, hash_map::DefaultHasher}, error::Error, hash::Hasher};
+use std::{error::Error};
+use rayon::{iter::{ParallelIterator, IntoParallelRefIterator}};
+
 use crate::file_object::FileObject;
+
+use super::get_columnset_duplicates_count;
 
 pub fn get_known_keys(file_object: &FileObject, dupe_count: usize) -> Result<Vec<usize>, Box<dyn Error>> {
     // Find keys from the top down -- if removing a single column leads to an increase in duplicates
@@ -7,35 +11,22 @@ pub fn get_known_keys(file_object: &FileObject, dupe_count: usize) -> Result<Vec
     // POTENTIAL ERROR: the only case in which this may not work is if two keys increase duplicate rows but the duplicates of one key are a subset of duplicates from the other.
     // That case should be extremely rare, but the code should be still be adjusted to account for that.
     
-    let mut known_keys: Vec<usize> = vec![];
-    let mut testset: Vec<HashSet<u64>> = vec![HashSet::with_capacity(file_object.total_rows); file_object.total_columns];
-    let mut duplicates: Vec<usize> = vec![0; file_object.total_columns];
-    let rowiterator = file_object.data.lines();
-    for row in rowiterator {
-        let splitrow = row.split(&file_object.internal_delimiter);
-        let mut hasher_set: Vec<DefaultHasher> = vec![DefaultHasher::new(); file_object.total_columns];
-        // add contents of all fields to the hasher, except for fields where the column number matches the set number
-        for (colnum, contents) in splitrow.enumerate() {
-            for (i, x) in hasher_set.iter_mut().enumerate() {
-                if i != colnum {
-                    x.write(contents.as_bytes());
-                }
-            }
-        }
-        // Finish generating hash, then add to hashset. If it can't be added because it's a duplicate, then we
-        // have a match for one of our known keys.
-        for (i, x) in testset.iter_mut().enumerate() {
-            let newval = x.insert(hasher_set[i].finish());
-            if newval != true {
-                duplicates[i] += 1;
-            }
-        }
-    }
-    for (i, x) in duplicates.iter().enumerate() {
-        if x > &dupe_count {
-            known_keys.push(i.clone())
-        }
-    }
+    let answer_dataset: Vec<(usize, usize)> = (0..file_object.total_columns).collect::<Vec<usize>>()
+        .par_iter()
+        .map(|colnum| {
+            let test_set = (0..file_object.total_columns).filter(|x| x != colnum).collect();
+            let answer = get_columnset_duplicates_count(file_object, &test_set).unwrap();
+            let current_col = colnum.clone();
+            return (current_col, answer);
+        })
+        .collect();
+
+    let known_keys = answer_dataset
+        .iter()
+        .filter(|col_data| col_data.1 > dupe_count)
+        .map(|col_num| col_num.0)
+        .collect();
+        
     Ok(known_keys)
 }
 

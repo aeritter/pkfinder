@@ -131,7 +131,7 @@ impl FileObject {
         let rows = self.data.lines();
         let num_of_rows = rows.clone().count();
         let mut datahashset = HashSet::with_capacity(num_of_rows);
-        for row in rows.into_iter() {
+        for row in rows {
             datahashset.insert(generate_hash_from_str(row));
         }
         let dupecount = num_of_rows - datahashset.len();

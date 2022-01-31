@@ -2,6 +2,7 @@ mod file_object;
 mod common;
 mod calculators;
 use std::path::Path;
+use std::sync::Arc;
 use std::time::SystemTime;
 use itertools::any;
 use structopt::StructOpt;
@@ -19,6 +20,10 @@ struct Config {
     /// Print file details (delimiter, column & row counts)
     #[structopt(short, long)]
     properties: bool,
+    
+    /// Number of CPU threads to use. Defaults to two (2) threads.
+    #[structopt(short, long, default_value = "2")]
+    threads: usize,
 
     /// Print column numbers and the associated headers
     #[structopt(short, long)]
@@ -87,13 +92,15 @@ fn main() {
         return ()
     }
 
-    let data = FileObject::new(&options.file).unwrap();
+    let data = Arc::new(FileObject::new(&options.file).unwrap());
     if options.properties {
         data.print_details();
     }
     if options.column_numbers {
         data.print_column_numbers()
     }
+    
+    rayon::ThreadPoolBuilder::new().num_threads(options.threads).build_global().unwrap();
 
     match &options.subcommands {
         // Primary Key subcommand
@@ -107,8 +114,10 @@ fn main() {
             match &opt.output {
                 Some(output_location) => get_duplicates_count(&data, &output_location.outfile.as_ref().unwrap(), opt.max_combination_size).expect("Encountered a problem while running the output combination option."),
                 None => {
-                    let duplicate_row_count = data.get_duplicate_row_count().unwrap_or(0);
-                    println!("\nPrimary Key Combination: {:?}", get_pk(&data, duplicate_row_count, vec![]).expect("Couldn't find primary key combination."));
+                    if ! opt.calculate_known_keys {
+                        let duplicate_row_count = data.get_duplicate_row_count().unwrap_or(0);
+                        println!("\nPrimary Key Combination: {:?}", get_pk(&data, duplicate_row_count, vec![]).expect("Couldn't find primary key combination."));
+                    }
                 }
             }
         },
