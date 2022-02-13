@@ -91,8 +91,10 @@ fn main() {
         println!("\nErr: File not found.\n");
         return ()
     }
+    rayon::ThreadPoolBuilder::new().num_threads(options.threads).build_global().unwrap();
 
     let data = Arc::new(FileObject::new(&options.file).unwrap());
+    
     if options.properties {
         data.print_details();
     }
@@ -100,23 +102,22 @@ fn main() {
         data.print_column_numbers()
     }
     
-    rayon::ThreadPoolBuilder::new().num_threads(options.threads).build_global().unwrap();
 
     match &options.subcommands {
         // Primary Key subcommand
         Some(Subcommands::PK(opt)) => {
             if opt.calculate_known_keys {
-                let duplicate_row_count = data.get_duplicate_row_count().unwrap_or(0);
-                let known_keys = get_known_keys(&data, duplicate_row_count).expect("Could not calculate known keys.");
+                // let duplicate_row_count = data.get_duplicate_row_count().unwrap_or(0);
+                let known_keys = get_known_keys(&data, 0).expect("Could not calculate known keys.");
                 println!("\nKnown keys: {:?}", data.header_index_to_string(&known_keys));
-                println!("\nPrimary Key Combination: {:?}", get_pk(&data, duplicate_row_count, known_keys).expect("Couldn't find primary key combination."))
+                println!("\nPrimary Key Combination: {:?}", get_pk(&data, 0, known_keys).expect("Couldn't find primary key combination."))
             };
             match &opt.output {
                 Some(output_location) => get_duplicates_count(&data, &output_location.outfile.as_ref().unwrap(), opt.max_combination_size).expect("Encountered a problem while running the output combination option."),
                 None => {
                     if ! opt.calculate_known_keys {
-                        let duplicate_row_count = data.get_duplicate_row_count().unwrap_or(0);
-                        println!("\nPrimary Key Combination: {:?}", get_pk(&data, duplicate_row_count, vec![]).expect("Couldn't find primary key combination."));
+                        // let duplicate_row_count = data.get_duplicate_row_count().unwrap_or(0);
+                        println!("\nPrimary Key Combination: {:?}", get_pk(&data, 0, vec![]).expect("Couldn't find primary key combination."));
                     }
                 }
             }
@@ -140,8 +141,8 @@ fn main() {
         },
         None => {
             println!("No commands given, defaulting to finding primary key combination.\n");
-            let duplicate_row_count = data.get_duplicate_row_count().unwrap_or(0);
-            println!("\nPrimary Key Combination: {:?}", get_pk(&data, duplicate_row_count, vec![]).expect("Couldn't find primary key combination."));
+            // let duplicate_row_count = data.get_duplicate_row_count().unwrap_or(0);
+            println!("\nPrimary Key Combination: {:?}", get_pk(&data, 0, vec![]).expect("Couldn't find primary key combination."));
         }
     }
 
