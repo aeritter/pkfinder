@@ -8,13 +8,14 @@ pub fn get_columnset_duplicates_count(file_object: &FileObject, column_numbers: 
     let mut testset: HashSet<u64> = HashSet::with_capacity(file_object.total_rows);
     let mut duplicates: usize = 0;
     let rowiterator = &file_object.data;
+    let delimiter = &file_object.internal_delimiter.as_bytes()[0];
     for row in rowiterator {
         // computes for one set of column numbers on each row
         // could be sped up by working on multiple sets per row so we don't iterate over each row for every set
         let mut s = DefaultHasher::new();
-        let mut splitrow = row.split(&file_object.internal_delimiter);
+        let mut splitrow = row.as_bytes().split(|f| f == delimiter);
         for x in &column_offset {
-            s.write(splitrow.nth(*x).unwrap().as_bytes())
+            s.write(splitrow.nth(*x).unwrap())
         }
         let val = s.finish();
         if !testset.insert(val) {
@@ -31,11 +32,12 @@ pub fn save_columnset_duplicates(file_object: &FileObject, column_numbers: &Vec<
     let mut testset: HashMap<u64, (bool, String)> = HashMap::with_capacity(file_object.total_rows);
     let mut duplicates: usize = 0;
     let rowiterator = &file_object.data;
+    let delimiter = &file_object.internal_delimiter.as_bytes()[0];
     for row in rowiterator {
         let mut s = DefaultHasher::new();
-        let mut splitrow = row.split(&file_object.delim);
+        let mut splitrow = row.as_bytes().split(|f| f == delimiter);
         for x in &column_offset {
-            s.write(splitrow.nth(*x).unwrap().as_bytes())
+            s.write(splitrow.nth(*x).unwrap())
         }
         let val = s.finish();
 
