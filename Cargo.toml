@@ -1,13 +1,18 @@
 [package]
 name = "pkfinder"
-version = "0.5.2"
+version = "0.6.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+#[profile.release]
+#debug = true
+#opt-level = 3
+
 [dependencies]
-itertools = "*"
-structopt = "*"
-csv = "1.1"
-regex = "1.5.2"
+itertools = "0.10.3"
+# structopt = "0.3.26"
+clap = { version = "3.0", features = ["derive"] }
+csv = "1.1.6"
+regex = "1.5.4"
 rayon = "1.5.1"

@@ -42,7 +42,7 @@ impl FileObject {
         }
 
         let headers: Vec<String>;
-        let duplicates: Vec<String>;
+        let duplicates: usize;
         if delimiter_type.is_empty() {
             // regex: Non-word, non-space, non-period value is grabbed, where it's followed by a quote or word character, followed by anything, then mirrored (palindrome)
             // if the value grabbed at the front is equivalent to the value grabbed at the back, add that value as a potential delimiter, then attempt
@@ -83,8 +83,10 @@ impl FileObject {
                     .join("\0")
                 )
                 .collect();
+            let pre_dedup_size = file_contents_vec.len();
             file_contents_vec.par_sort_unstable();
             file_contents_vec.dedup();
+            duplicates = pre_dedup_size - file_contents_vec.len();
             file_contents = file_contents_vec;
             // let (contents, dupes) = file_contents_vec.partition_dedup();
             // file_contents = contents.to_owned();
@@ -105,8 +107,10 @@ impl FileObject {
                 .collect();
             let mut file_contents_vec: Vec<String> = reader
                 .collect();
+            let pre_dedup_size = file_contents_vec.len();
             file_contents_vec.par_sort_unstable();
             file_contents_vec.dedup();
+            duplicates = pre_dedup_size - file_contents_vec.len();
             file_contents = file_contents_vec;
             // let (contents, dupes) = file_contents_vec.partition_dedup();
             // file_contents = contents.to_owned();
@@ -114,6 +118,11 @@ impl FileObject {
         }
 
         let num_of_rows = file_contents.len();
+
+        if duplicates > 0 {
+            let duplicates_percentage = ((duplicates as f64 / num_of_rows as f64)*10000 as f64).round() / 10000 as f64;
+            println!("~{}% of lines were duplicates ({}/{}), consider adding another column to help differentiate.\n", duplicates_percentage, duplicates, num_of_rows)
+        }
 
         // let newline_types = vec!["\r\n", "\r", "\n"];
         // let testdata: &str = &file_contents.chars().take(1000).join("");
