@@ -141,9 +141,11 @@ fn main() {
             }            
         },
         None => {
-            println!("No commands given, defaulting to finding primary key combination.\n");
-            // let duplicate_row_count = data.get_duplicate_row_count().unwrap_or(0);
-            println!("\nPrimary Key Combination: {:?}", get_pk(&data, 0, vec![]).expect("Couldn't find primary key combination."));
+            if !options.properties & !options.column_numbers {
+                println!("No commands given, defaulting to finding primary key combination.\n");
+                // let duplicate_row_count = data.get_duplicate_row_count().unwrap_or(0);
+                println!("\nPrimary Key Combination: {:?}", get_pk(&data, 0, vec![]).expect("Couldn't find primary key combination."));
+            };
         }
     }
 

@@ -21,7 +21,6 @@ impl FileObject {
         let file_contents: Vec<String>;
 
         // Find Delimiter
-        // NOTE: need to account for escaped characters & characters between quotes
         let mut delimiter_type: String = String::new();
         let internal_delimiter: String;
 
@@ -41,6 +40,7 @@ impl FileObject {
             }
         }
 
+        // Find Headers, Duplicate count, & coalesce Data
         let headers: Vec<String>;
         let duplicates: usize;
         if delimiter_type.is_empty() {
@@ -124,24 +124,11 @@ impl FileObject {
             println!("~{}% of lines were duplicates ({}/{}), consider adding another column to help differentiate.\n", duplicates_percentage, duplicates, num_of_rows)
         }
 
-        // let newline_types = vec!["\r\n", "\r", "\n"];
-        // let testdata: &str = &file_contents.chars().take(1000).join("");
-        // let mut newline_type: String = String::new();
-        // for newline in newline_types {
-        //     if testdata.contains(newline) {
-        //         newline_type = newline.to_string();
-        //         break;
-        //     }
-        // }
-
         if delimiter_type.is_empty() {
             panic!("Could not determine delimiter.")
         }
 
-        // Find Headers
-        // let headers: Vec<String> = file_contents.lines().next().unwrap().split(&internal_delimiter).map(|x| x.to_string()).collect();
         let total_columns = headers.len();
-
             
 
         Ok(
