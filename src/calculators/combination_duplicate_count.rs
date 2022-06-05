@@ -45,9 +45,9 @@ pub fn save_columnset_duplicates(file_object: &FileObject, column_numbers: &Vec<
         let duplicate_data: Option<(bool, String)> = testset.insert(val, (exists_in_testset, row.to_string()));
         if duplicate_data != None {
             if duplicate_data.as_ref().unwrap().0 == false {
-                duplicates_list.push(row.clone().to_owned().replace(&file_object.internal_delimiter, &file_object.delim)+"\n");
+                duplicates_list.push(row.clone().to_owned().replace(&file_object.internal_delimiter, &file_object.display_delimiter)+"\n");
             }
-            duplicates_list.push(duplicate_data.unwrap().1.replace(&file_object.internal_delimiter, &file_object.delim)+"\n");
+            duplicates_list.push(duplicate_data.unwrap().1.replace(&file_object.internal_delimiter, &file_object.display_delimiter)+"\n");
             duplicates += 1;
         }
     }
@@ -58,7 +58,7 @@ pub fn save_columnset_duplicates(file_object: &FileObject, column_numbers: &Vec<
         .write(true)
         .open(output_file_location)?;
     
-    output_file.write((file_object.headers.clone().join(&file_object.delim)+"\n").as_bytes())?;
+    output_file.write((file_object.headers.clone().join(&file_object.display_delimiter)+"\n").as_bytes())?;
     output_file.write(duplicates_list.join("").as_bytes())?;
 
     Ok(duplicates)
