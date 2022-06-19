@@ -1,4 +1,4 @@
-use std::{ collections::{hash_map::DefaultHasher, HashSet, HashMap}, error::Error, hash::{Hasher, Hash}, io::{BufReader, BufRead}, fs::{self, File}};
+use std::{ collections::{HashMap}, error::Error, io::{BufReader, BufRead}, fs::{File}};
 use itertools::Itertools;
 use rayon::prelude::*;
 use regex::{Regex};
@@ -16,7 +16,7 @@ pub struct FileObject {
 
 
 impl FileObject {
-    pub fn new(file_path: &str) -> Result<FileObject, Box<dyn Error>> {
+    pub fn from_file(file_path: &str) -> Result<FileObject, Box<dyn Error>> {
         let reader = BufReader::new(File::open(file_path)?);
         let delim_finding_data: Vec<String> = reader.lines().take(5).map(|x| x.expect("Expected UTF-8 file encoding")).collect();
 

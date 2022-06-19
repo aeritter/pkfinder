@@ -1,18 +1,21 @@
 [package]
 name = "pkfinder"
-version = "0.6.2"
+version = "0.6.3"
 edition = "2021"
+authors = ["Andrew Ritter"]
+description = "Assists with finding the best primary key combination for a given dataset"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 #[profile.release]
 #debug = true
 #opt-level = 3
+#codegen-units = 1
 
 [dependencies]
 itertools = "0.10.3"
 # structopt = "0.3.26"
 clap = { version = "3.0", features = ["derive"] }
 csv = "1.1.6"
-regex = "1.5.4"
+regex = "1.5.6"
 rayon = "1.5.1"
