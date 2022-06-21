@@ -45,14 +45,13 @@ impl FileObject {
         };
 
         let headers: Vec<String> = FileObject::get_headers_from_row(&file_contents[0], &internal_delimiter)?;
-        let duplicates: usize;
 
-        let pre_dedup_size = file_contents.len();
+        let pre_dedup_size: usize = file_contents.len();
         file_contents.par_sort_unstable();
         file_contents.dedup();
-        duplicates = pre_dedup_size - file_contents.len();
+        let duplicates: usize = pre_dedup_size - file_contents.len();
 
-        let num_of_rows = file_contents.len();
+        let num_of_rows: usize = file_contents.len();
         if duplicates > 0 {
             let duplicates_percentage = ((duplicates as f64 / num_of_rows as f64)*10000 as f64).round() / 10000 as f64;
             println!("~{}% of lines were duplicates ({}/{}), consider adding another column to help differentiate.\n", duplicates_percentage, duplicates, num_of_rows)
