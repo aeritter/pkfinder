@@ -1,4 +1,4 @@
-use std::{ collections::{HashMap}, error::Error, io::{BufReader, BufRead}, fs::{File}};
+use std::{ collections::{HashMap}, error::Error, io::{BufReader, BufRead}, fs::File};
 use itertools::Itertools;
 use rayon::prelude::*;
 use regex::{Regex};
@@ -29,7 +29,7 @@ impl FileObject {
         };
 
         let internal_delimiter: String;
-        let mut file_contents = match FileObject::file_to_vec_simplified(file_path, &original_delimiter) {
+        let (headers, mut file_contents) = match FileObject::file_to_vec_simplified(file_path, &original_delimiter) {
             Ok(data) => {
                 internal_delimiter = original_delimiter.clone();
                 data
@@ -44,7 +44,7 @@ impl FileObject {
             }
         };
 
-        let headers: Vec<String> = FileObject::get_headers_from_row(&file_contents[0], &internal_delimiter)?;
+        // let headers: Vec<String> = FileObject::get_headers_from_row(&file_contents[0], &internal_delimiter)?;
 
         let pre_dedup_size: usize = file_contents.len();
         file_contents.par_sort_unstable();
@@ -121,10 +121,12 @@ impl FileObject {
         
     }
 
-    fn file_to_vec_simplified(file_path: &str, current_delimiter: &String) -> Result<Vec<String>, Box<dyn Error>> {
+    fn file_to_vec_simplified(file_path: &str, current_delimiter: &String) -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
         let file_reader = File::open(file_path)?;
-        let result: Vec<String> = BufReader::new(file_reader)
-            .lines()
+        let mut reader = BufReader::new(file_reader)
+            .lines();
+        let headers: Vec<String> = reader.next().unwrap().unwrap().split(current_delimiter).map(|x| x.to_string()).collect();
+        let result: Vec<String> = reader
             .map(|x| x.unwrap())
             .collect();
         // // Verification step
@@ -134,15 +136,16 @@ impl FileObject {
         //         return Err("Verification failed on simplified file-to-vec conversion".into())
         //     }
         // };
-        Ok(result)
+        Ok((headers, result))
     }
 
-    fn file_to_vec(file_path: &str, current_delimiter: &String, new_delimiter: &String) -> Result<Vec<String>, Box<dyn Error>> {
+    fn file_to_vec(file_path: &str, current_delimiter: &String, new_delimiter: &String) -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
         let mut csv_reader = ReaderBuilder::new()
             .delimiter(current_delimiter.as_bytes()[0])
             .escape(Some(b'\\'))
             .has_headers(true)
             .from_reader(File::open(file_path).unwrap());
+        let headers: Vec<String> = csv_reader.headers()?.iter().map(|x| x.to_string()).collect();
         let result = csv_reader
             .records()
             .map(|record| record
@@ -151,7 +154,7 @@ impl FileObject {
                 .join(&new_delimiter)
             )
             .collect();
-        Ok(result)   
+        Ok((headers, result))   
     }
 
 

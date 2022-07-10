@@ -6,6 +6,9 @@ use pk::PKOptions;
 mod cs;
 use cs::ColumnSetOptions;
 
+mod typer;
+use typer::TyperOptions;
+
 #[derive(Debug, Parser)]
 pub enum Subcommands {
     /// Use pk to find the smallest possible primary key combination.
@@ -14,5 +17,7 @@ pub enum Subcommands {
     #[clap(name = "pk", verbatim_doc_comment)]
     PK(PKOptions),
     #[clap(name = "cs", about = "Use cs to check a specific columnset")]
-    ColumnSet(ColumnSetOptions)
+    ColumnSet(ColumnSetOptions),
+    #[clap(name = "typer", about = "Determine data types for columns")]
+    Typer(TyperOptions),
 }
