@@ -126,17 +126,18 @@ impl FileObject {
         let mut reader = BufReader::new(file_reader)
             .lines();
         let headers: Vec<String> = reader.next().unwrap().unwrap().split(current_delimiter).map(|x| x.to_string()).collect();
-        let result: Vec<String> = reader
-            .map(|x| x.unwrap())
+        let delim_match_num: usize = headers.len();
+        let result: Result<Vec<String>, Box<dyn Error>> = reader
+            .map(|x| {
+                let c = x.unwrap();
+                if c.matches(current_delimiter).count() != delim_match_num {
+                    return Ok(c)
+                } else {
+                    return Err("Verification failed on simplified file-to-vec conversion".into())
+                }
+            })
             .collect();
-        // // Verification step
-        // let delim_match_num: usize = result[0].matches(current_delimiter).count();
-        // for line in &result {
-        //     if line.matches(current_delimiter).count() != delim_match_num {
-        //         return Err("Verification failed on simplified file-to-vec conversion".into())
-        //     }
-        // };
-        Ok((headers, result))
+        Ok((headers, result?))
     }
 
     fn file_to_vec(file_path: &str, current_delimiter: &String, new_delimiter: &String) -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
