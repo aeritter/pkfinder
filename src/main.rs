@@ -16,7 +16,6 @@ use crate::file_object::FileObject;
 fn main() {
     let ctime = SystemTime::now();
 
-    #[cfg_attr(miri, ignore)]
     let options: Config = Parser::parse();
     println!("\nUsing file: {}\n", Path::new(& options.file).file_name().unwrap().to_str().unwrap());
     if !Path::new(&options.file).exists() {
@@ -43,6 +42,10 @@ fn main() {
         // Column Set subcommand
         Some(Subcommands::ColumnSet(opt)) => {
             opt.run(&data);         
+        },
+        // Typer subcommand
+        Some(Subcommands::Typer(opt)) => {
+            opt.run(&data);
         },
         None => {
             if !options.properties & !options.column_numbers {
