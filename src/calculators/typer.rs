@@ -6,12 +6,12 @@ pub fn get_types(file_object: &FileObject, details: bool) {
     let mut typer_list = vec![Typer::new(); file_object.total_columns];
     for row in &file_object.data {
         for (colnum, field) in row.split(&file_object.internal_delimiter).enumerate() {
-            typer_list[colnum].add(colnum, field)
+            typer_list[colnum].add(field)
         }
     }
     if details {
         for (colnum, answer) in typer_list.iter().enumerate() {
-            println!("{}. {}: {}", colnum+1, file_object.headers[colnum], answer.summarize_stats())
+            println!("{}. {}: {}", colnum+1, file_object.headers[colnum], answer.stats)
         }
     } else {
         for (colnum, answer) in typer_list.iter().enumerate() {
@@ -20,105 +20,47 @@ pub fn get_types(file_object: &FileObject, details: bool) {
     }
 }
 
-
 #[derive(Clone, Default)]
-pub struct Typer<'a> {
-    pub stats: Vec<GuessType<'a>>
+pub struct Typer {
+    pub stats: GuessSummary
 }
 
-impl<'a> Typer<'a> {
+impl Typer {
     pub fn new() -> Self {
         Self {
-            stats: vec![]
+            stats: GuessSummary::new()
         }
     }
 
-    pub fn add(&mut self, rownum: usize, data: &'a str) {
-        let g = GuessType::new(rownum, data);
-        self.stats.push(g);
+    pub fn add(&mut self, data: &str) {
+        self.stats.add_data(data);
     }
 
     pub fn guess(&self) -> String {
-        let data = self.summarize_stats();
-        let num_datapoints = self.stats.len();
-        if data.null == num_datapoints {
+        if self.stats.null == self.stats.datapoints {
             return "null".to_string()
         }
-        if data.int == num_datapoints-data.null {
+        if self.stats.int == self.stats.datapoints-self.stats.null {
             return "int".to_string()
         }
-        if data.float == num_datapoints-data.null {
-            if data.numeric.1 > 0 {
-                return format!("numeric({}, {})", data.numeric.0, data.numeric.1)
+        if self.stats.float == self.stats.datapoints-self.stats.null {
+            if self.stats.numeric.0 > 0 {
+                return format!("numeric({}, {})", self.stats.numeric.0, self.stats.numeric.1)
             }
             return "float".to_string()
         }
-        if data.char == num_datapoints-data.null {
+        if self.stats.char == self.stats.datapoints-self.stats.null {
             return "char".to_string()
         }
-        return format!("varchar({})", data.varchar)
-    }
-
-    pub fn summarize_stats(&self) -> GuessSummary {
-        GuessSummary::new(&self.stats)
+        return format!("varchar({})", self.stats.varchar)
     }
 }
 
 
-#[derive(Debug, PartialEq, Clone, Copy, Default)]
-pub struct GuessType<'a> {
-    rownum: usize,
-    data: &'a str,
-    null: bool,
-    int: bool,
-    float: bool,
-    numeric: Option<(usize, usize)>,
-    char: bool,
-    varchar: usize,
-}
-impl<'a> GuessType<'a> {
-    pub fn new(rownum: usize, data: &'a str) -> Self {
-        if data.is_empty() {
-            return Self {
-                rownum,
-                null: true,
-                int: false,
-                float: false,
-                numeric: None,
-                char: false,
-                varchar: 0,
-                data,
-            }
-        }
 
-        let int = data.parse::<i32>().is_ok();
-        let float = data.parse::<f64>().is_ok();
-        let char = data.parse::<char>().is_ok();
-        let varchar = data.len();
-        let mut numeric: Option<(usize, usize)> = None;
-
-        if float {
-            let total_digits = data.chars().filter(|x| x.is_numeric()).count();
-            let decimal_precision = data.split(".").nth(1).unwrap_or("").chars().filter(|x| x.is_numeric()).count();
-            numeric = Some((total_digits, decimal_precision));
-        }
-        
-        GuessType {
-            rownum,
-            null: false,
-            int,
-            float,
-            numeric,
-            char,
-            varchar,
-            data,
-        }
-
-    }
-
-}
-
+#[derive(Clone, Default, PartialEq, Debug)]
 pub struct GuessSummary {
+    datapoints: usize,
     null: usize,
     int: usize,
     float: usize,
@@ -128,43 +70,17 @@ pub struct GuessSummary {
 }
 
 impl GuessSummary {
-    pub fn new(data: &Vec<GuessType>) -> Self {
-        let mut null: usize = 0;
-        let mut int: usize = 0;
-        let mut float: usize = 0;
-        let mut numeric: (usize, usize) = (0, 0);
-        let mut char: usize = 0;
-        let mut varchar: usize = 0;
+    pub fn new() -> Self {
+        let datapoints: usize = 0;
+        let null: usize = 0;
+        let int: usize = 0;
+        let float: usize = 0;
+        let numeric: (usize, usize) = (0, 0);
+        let char: usize = 0;
+        let varchar: usize = 0;
 
-        for datapoint in data {
-            if datapoint.null == true {
-                null += 1;
-            }
-            if datapoint.int == true {
-                int += 1;
-            }
-            if datapoint.float == true {
-                float += 1;
-            }
-            match datapoint.numeric {
-                Some(num) => {
-                    if numeric.0 < num.0 {
-                        numeric.0 = num.0
-                    }
-                    if numeric.1 < num.1 {
-                        numeric.1 = num.1
-                    }
-                }
-                None => (),
-            };
-            if datapoint.char == true {
-                char += 1;
-            }
-            if datapoint.varchar > varchar {
-                varchar = datapoint.varchar;
-            }
-        }
         GuessSummary {
+            datapoints,
             null,
             int,
             float,
@@ -172,8 +88,44 @@ impl GuessSummary {
             char,
             varchar,
         }
-
     }
+
+
+    pub fn add_data(&mut self, data: &str) -> () {
+        self.datapoints += 1;
+
+        if data.len() == 0 {
+            self.null += 1;
+        } else if data.parse::<char>().is_ok() {
+            self.char += 1;
+        }
+        if data.len() > self.varchar {
+            self.varchar = data.len();
+        }
+
+
+        let numeric = data.parse::<f64>().is_ok();
+        if numeric {
+            self.float += 1;
+                    
+            if data.parse::<i32>().is_ok() {
+                self.int += 1;
+            }
+
+            let split_numeric: Vec<&str> = data.split(".").collect();
+            if split_numeric.len() == 2 {
+                let decinum = split_numeric[1].len();
+                if decinum > self.numeric.1 {
+                    self.numeric.1 = decinum
+                }
+            }
+            let precision = split_numeric[0].len() + self.numeric.1;
+            if precision > self.numeric.0 {
+                self.numeric.0 = precision
+            }
+        }
+    }
+
 }
 
 impl Display for GuessSummary {
@@ -189,27 +141,37 @@ mod test_type_guess {
 
     #[test]
     fn check_null() {
-        assert_eq!(GuessType::new(0, &""), GuessType {rownum: 0, null:true, int:false, float:false, numeric:None, char:false, varchar:0, data: &"" });
+        let mut test = Typer::new();
+        test.add(&"");
+        assert_eq!(test.stats, GuessSummary {datapoints: 1, null: 1, int: 0, float: 0, numeric:(0, 0), char: 0, varchar: 0 });
     }
 
     #[test]
     fn check_int() {
-        assert_eq!(GuessType::new(0, &"25"), GuessType {rownum: 0, null: false, int: true, float: true, numeric:Some((2, 0)), char: false, varchar: 2, data: &"25"});
+        let mut test = Typer::new();
+        test.add(&"25");
+        assert_eq!(test.stats, GuessSummary {datapoints: 1, null: 0, int: 1, float: 1, numeric:(2, 0), char: 0, varchar: 2 });
     }
     
     #[test]
     fn check_float() {
-        assert_eq!(GuessType::new(0, &"0.3258"), GuessType {rownum: 0, null: false, int: false, float: true, numeric:Some((5, 4)), char: false, varchar: 6, data: &"0.3258"});
+        let mut test = Typer::new();
+        test.add(&"0.3258");
+        assert_eq!(test.stats, GuessSummary {datapoints: 1, null: 0, int: 0, float: 1, numeric:(5, 4), char: 0, varchar: 6 });
     }
 
     #[test]
     fn check_char() {
-        assert_eq!(GuessType::new(0, &"C"), GuessType {rownum: 0, null: false, int: false, float: false, numeric:None, char: true, varchar: 1, data: &"C"});
+        let mut test = Typer::new();
+        test.add(&"C");
+        assert_eq!(test.stats, GuessSummary {datapoints: 1, null: 0, int: 0, float: 0, numeric:(0, 0), char: 1, varchar: 1 });
     }
 
     #[test]
     fn check_varchar() {
-        assert_eq!(GuessType::new(0, &"test32\n"), GuessType {rownum: 0, null: false, int: false, float: false, numeric:None, char: false, varchar: 7, data: &"test32\n"});
+        let mut test = Typer::new();
+        test.add(&"test32\n");
+        assert_eq!(test.stats, GuessSummary {datapoints: 1, null: 0, int: 0, float: 0, numeric:(0, 0), char: 0, varchar: 7 });
     }
     
 }

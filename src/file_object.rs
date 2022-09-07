@@ -1,8 +1,9 @@
-use std::{ collections::{HashMap}, error::Error, io::{BufReader, BufRead}, fs::File};
+use std::{ collections::{hash_map::DefaultHasher, HashSet}, error::Error, io::{BufReader, BufRead}, fs::File, hash::{Hash, Hasher}};
 use itertools::Itertools;
 use rayon::prelude::*;
-use regex::{Regex};
+
 use csv::{ReaderBuilder};
+
 
 pub struct FileObject {
     pub data: Vec<String>,
@@ -16,17 +17,8 @@ pub struct FileObject {
 
 
 impl FileObject {
-    pub fn from_file(file_path: &str) -> Result<FileObject, Box<dyn Error>> {
-        let reader = BufReader::new(File::open(file_path)?);
-        let delim_finding_data: Vec<String> = reader.lines().take(5).map(|x| x.expect("Expected UTF-8 file encoding")).collect();
-
-        let original_delimiter = match FileObject::find_delimiter_method_1(&delim_finding_data) {
-            Ok(delim) => delim,
-            Err(_) => match FileObject::find_delimiter_method_2(&delim_finding_data) {
-                Ok(delim) => delim,
-                Err(_) => panic!("Could not determine delimiter")
-            },
-        };
+    pub fn from_file(file_path: &str, delimiter: &str, deduplicate: bool) -> Result<FileObject, Box<dyn Error>> {
+        let original_delimiter = delimiter.to_string();
 
         let internal_delimiter: String;
         let (headers, mut file_contents) = match FileObject::file_to_vec_simplified(file_path, &original_delimiter) {
@@ -46,10 +38,15 @@ impl FileObject {
 
         // let headers: Vec<String> = FileObject::get_headers_from_row(&file_contents[0], &internal_delimiter)?;
 
-        let pre_dedup_size: usize = file_contents.len();
-        file_contents.par_sort_unstable();
-        file_contents.dedup();
-        let duplicates: usize = pre_dedup_size - file_contents.len();
+        let duplicates: usize;
+        if deduplicate {
+            let pre_dedup_size: usize = file_contents.len();
+            file_contents.par_sort_unstable();
+            file_contents.dedup();
+            duplicates = pre_dedup_size - file_contents.len();
+        } else {
+            duplicates = 0;
+        }
 
         let num_of_rows: usize = file_contents.len();
         if duplicates > 0 {
@@ -72,54 +69,6 @@ impl FileObject {
         )
     }
 
-
-    fn get_headers_from_row(row: &String, delimiter: &String) -> Result<Vec<String>, Box<dyn Error>> {
-        let result = row
-            .split(delimiter)
-            .map(|x| x.to_string())
-            .collect();
-        Ok(result)
-    }
-
-    fn find_delimiter_method_1(test_data: &Vec<String>) -> Result<String, String>{
-        let delimiter_types = vec![",", "\t"];
-        for delim in delimiter_types {
-            if test_data[0].contains(delim) {
-                let delim_test_count: Vec<usize> = test_data.iter()
-                    .map(|x| x.matches(delim).count())
-                    .collect();
-                if delim_test_count.iter().all(|x| x == &delim_test_count[0]) {
-                    return Ok(delim.to_string());
-                }
-            }
-        }
-        return Err("Could not find delimiter".to_string())
-    }
-    
-    fn find_delimiter_method_2(test_data: &Vec<String>) -> Result<String, Box<dyn Error>>{
-        // regex: Non-word, non-space, non-period value is grabbed, where it's followed by a quote or word character, followed by anything, then mirrored (palindrome)
-        // if the value grabbed at the front is equivalent to the value grabbed at the back, add that value as a potential delimiter, then attempt
-        // to use the value that appeared the most as the delimiter.
-        let regex_string = Regex::new(r#"(?P<delim1>[^\w \.\\"])(?:"|\w).*?(?:"|\w)(?P<delim2>[^\w \.\\"])"#).unwrap();
-        let mut delim_hashmap = HashMap::new();
-        for row in test_data {
-            for result in regex_string.captures_iter(&row) {
-                if &result["delim1"] == &result["delim2"] {
-                    let delim1 = result["delim1"].to_string();
-                    let y = delim_hashmap.entry(delim1).or_insert(1);
-                    *y += 1;
-                }
-            }
-        }
-        let delim_guess = delim_hashmap
-            .iter()
-            .max_by(|x, y| x.1.cmp(&y.1))
-            .map(|(k, _v)| k)
-            .unwrap();
-        return Ok(delim_guess.clone());
-        // TODO: test the delim here and if it's wrong, test the one with the next-highest occurences or attempt to guess on a larger data set
-        
-    }
 
     fn file_to_vec_simplified(file_path: &str, current_delimiter: &String) -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
         let file_reader = File::open(file_path)?;
@@ -159,15 +108,13 @@ impl FileObject {
     }
 
 
-
-    // pub fn get_duplicate_row_count(&self) -> Result<usize, Box<dyn Error>> {
+    // pub fn get_duplicate_row_count(rows: &Vec<String>) -> Result<usize, Box<dyn Error>> {
     //     // Determines how many duplicate rows exist. Uses the entire contents of each row.
     //     fn generate_hash_from_str(hashstr: &str) -> u64 {
     //         let mut s = DefaultHasher::new();
     //         hashstr.hash(&mut s);
     //         s.finish()
     //     }
-    //     let rows = &self.data;
     //     let num_of_rows = rows.len();
     //     let mut datahashset = HashSet::with_capacity(num_of_rows);
     //     for row in rows {
@@ -175,7 +122,7 @@ impl FileObject {
     //     }
     //     let dupecount = num_of_rows - datahashset.len();
     //     // creating a vec to sort() and dedup() is 4x slower than using a hashset.
-    //     println!("Total true duplicates: {}", dupecount);
+    //     // println!("Total true duplicates: {}", dupecount);
     //     Ok(dupecount)
     // }
 
@@ -185,18 +132,5 @@ impl FileObject {
     }
 
 
-    pub fn print_details(&self) {
-        // println!("Newline format: {:?}", self.newline);
-        println!("Delimiter: {:?}", self.display_delimiter);
-        println!("Column count: {:?}", self.total_columns);
-        println!("Row count: {:?}", self.total_rows);
-    }
-
-    pub fn print_column_numbers(&self) {
-        println!();
-        for (index, column) in self.headers.iter().enumerate() {
-            println!("{}: {}", index+1, column)
-        }
-    }
 
 }
