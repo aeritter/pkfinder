@@ -1,7 +1,8 @@
 use clap::Parser;
+use pyo3::FromPyObject;
 use crate::{file_object::FileObject, calculators::get_types};
 
-#[derive(Debug, Parser)]
+#[derive(Debug, Parser, FromPyObject)]
 pub struct TyperOptions {
     /// Get detailed stats
     #[clap(short, long)]

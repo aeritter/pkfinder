@@ -1,9 +1,10 @@
 use clap::Parser;
+use pyo3::FromPyObject;
 
 pub mod subcommands;
 use self::subcommands::Subcommands;
 
-#[derive(Debug, Parser)]
+#[derive(Debug, Parser, FromPyObject)]
 #[clap(name = "Primary Key finder", about, version, author)]
 pub struct Config {
     /// Location of the file to process

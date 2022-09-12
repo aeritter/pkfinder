@@ -7,9 +7,10 @@ mod cs;
 use cs::ColumnSetOptions;
 
 mod typer;
+use pyo3::FromPyObject;
 use typer::TyperOptions;
 
-#[derive(Debug, Parser)]
+#[derive(Debug, Parser, FromPyObject)]
 pub enum Subcommands {
     /// Use pk to find the smallest possible primary key combination.
     /// 
