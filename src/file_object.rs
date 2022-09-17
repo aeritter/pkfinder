@@ -101,14 +101,6 @@ impl FileObject {
             .map(|record| record
                 .unwrap()
                 .iter()
-                .map(|field| {
-                    if field.contains(current_delimiter) {
-                        let newfield = "\"".to_owned()+field+"\"";
-                        return newfield
-                    } else {
-                        return field.to_owned()
-                    }
-                })
                 .join(&new_delimiter)
             )
             .collect();

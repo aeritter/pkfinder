@@ -52,9 +52,40 @@ pub fn save_columnset_duplicates(file_object: &FileObject, column_numbers: &Vec<
         let duplicate_data: Option<(bool, String, String)> = testset.insert(val, (exists_in_testset, row.to_string(), keycombo.to_string()));
         if duplicate_data != None {
             if duplicate_data.as_ref().unwrap().0 == false {
-                duplicates_list.push((row.clone().to_owned().replace(&file_object.internal_delimiter, &file_object.display_delimiter)+"\n", keycombo.to_string()));
+                duplicates_list.push(
+                    (row
+                        .clone()
+                        .to_owned()
+                        .split(&file_object.internal_delimiter)
+                        .map(|x| {
+                            if x.contains(&file_object.display_delimiter) {
+                                return "\"".to_string()+x+"\""
+                            } else {
+                                return x.to_string()
+                            }
+                        })
+                        .join(&file_object.display_delimiter)
+                        + "\n"
+                    , keycombo.to_string()
+                    )
+                );
             }
-            duplicates_list.push((duplicate_data.as_ref().unwrap().1.replace(&file_object.internal_delimiter, &file_object.display_delimiter).to_owned()+"\n", duplicate_data.unwrap().2));
+            duplicates_list.push(
+                (duplicate_data
+                    .as_ref()
+                    .unwrap()
+                    .1
+                    .split(&file_object.internal_delimiter)
+                    .map(|x| {
+                        if x.contains(&file_object.display_delimiter) {
+                            return "\"".to_string()+x+"\""
+                        } else {
+                            return x.to_string()
+                        }
+                    })
+                    .join(&file_object.display_delimiter)
+                    + "\n"
+                , duplicate_data.unwrap().2));
             duplicates += 1;
         }
     }
