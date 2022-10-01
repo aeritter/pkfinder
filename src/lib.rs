@@ -5,40 +5,60 @@ mod models;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::SystemTime;
+use clap::builder;
 use pyo3::exceptions::PyFileNotFoundError;
 use pyo3::types::PyList;
 
-use crate::calculators::{get_pk, determine_delimiter};
+use crate::calculators::{get_pk, determine_delimiter, get_known_keys};
 use crate::common::{print_details, print_column_numbers};
 use crate::models::input::Config;
 use crate::models::input::subcommands::Subcommands;
 use crate::file_object::FileObject;
 use pyo3::prelude::*;
 
-#[pyfunction]
-fn find_pk(file: &str) -> PyResult<Vec<String>> {
-    let ctime = SystemTime::now();
-    println!("{:?}", file);
-    
-    println!("\nUsing file: {}\n", Path::new(&file).file_name().unwrap().to_str().unwrap());
-    if !Path::new(&file).exists() {
-        println!("\nErr: File not found.\n");
-        return Err(PyFileNotFoundError::new_err("File not found"))
-    }
-    rayon::ThreadPoolBuilder::new().num_threads(2).build_global().unwrap();
-
-    
-    let delimiter = determine_delimiter(&file).expect("Failed while attempting to find delimiter");
-    
-    let answer = get_pk(&Arc::new(FileObject::from_file(&file, &delimiter, true).unwrap()), 0, vec![]).expect("Couldn't find primary key combination.");
-
-    return Ok(answer)
-
-}
-
 #[pymodule]
 #[pyo3(name = "pkfinder")]
 fn pkfinder(py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(find_pk, m)?)?;
+    #[pyclass(freelist = 1000)]
+    #[derive(Clone)]
+    struct PKFinder {
+        file_object: Arc<FileObject>
+    }
+
+    #[pymethods]
+    impl PKFinder {
+        // Loads the file into memory so it can be worked on.
+        #[new]
+        fn new(
+            from_file: Option<&str>,
+            delimiter: Option<&str>
+        ) -> PyResult<Self> {
+            let from_file = from_file.expect("Must provide path to file");
+            let delim = determine_delimiter(&from_file).unwrap();
+            let delimiter = match delimiter {
+                Some(x) => x,
+                None => &delim
+            };
+            let fobject = Arc::new(FileObject::from_file(&from_file, &delimiter, true).unwrap());
+            return Ok(PKFinder { file_object: fobject })
+        }
+
+        // Returns a combination with the fewest possible columns that result in no duplicates that could be used as a primary key combination for the dataset.
+        fn get_pk(&self, known_keys: Option<Vec<usize>>) -> PyResult<Vec<String>> {
+            let keylist = match known_keys {
+                Some(x) => x,
+                None => vec![]  
+            };
+            return Ok(get_pk(&self.file_object, 0, keylist).unwrap())
+        }
+
+        fn get_known_keys(&self) -> PyResult<Vec<String>> {
+            return Ok(self.file_object.header_index_to_string(&get_known_keys(&self.file_object, 0).unwrap()))
+        }
+
+    }
+
+    // m.add_function(wrap_pyfunction!(find_pk, m)?)?;
+    m.add_class::<PKFinder>()?;
     Ok(())
 }
