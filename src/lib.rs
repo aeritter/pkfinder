@@ -1,3 +1,4 @@
+#![feature(iter_advance_by)]
 mod file_object;
 mod common;
 mod calculators;
@@ -39,7 +40,7 @@ fn pkfinder(py: Python, m: &PyModule) -> PyResult<()> {
                 Some(x) => x,
                 None => &delim
             };
-            let fobject = Arc::new(FileObject::from_file(&from_file, &delimiter, true).unwrap());
+            let fobject = Arc::new(FileObject::from_file(&from_file, &delimiter, true, 0).unwrap());
             return Ok(PKFinder { file_object: fobject })
         }
 

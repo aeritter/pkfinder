@@ -10,6 +10,10 @@ pub struct Config {
     /// Location of the file to process
     pub file: String,
 
+    /// Number of lines at top of file to skip (intended for skipping non-csv data in a csv file)
+    #[clap(short, long, default_value = "0")]
+    pub skip: usize,
+
     /// Print file details (delimiter, column & row counts)
     #[clap(short, long)]
     pub properties: bool,

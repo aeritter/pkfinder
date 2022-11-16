@@ -2,11 +2,11 @@ use std::fmt::{Display, self};
 
 use crate::file_object::FileObject;
 
-pub fn get_types(file_object: &FileObject, details: bool) {
+pub fn get_types(file_object: &FileObject, details: bool, trim_whitespace: bool) {
     let mut typer_list = vec![Typer::new(); file_object.total_columns];
     for row in &file_object.data {
         for (colnum, field) in row.split(&file_object.internal_delimiter).enumerate() {
-            typer_list[colnum].add(field)
+            typer_list[colnum].add(field, trim_whitespace)
         }
     }
     if details {
@@ -32,8 +32,8 @@ impl Typer {
         }
     }
 
-    pub fn add(&mut self, data: &str) {
-        self.stats.add_data(data);
+    pub fn add(&mut self, data: &str, trim_whitespace: bool) {
+        self.stats.add_data(data, trim_whitespace);
     }
 
     pub fn guess(&self) -> String {
@@ -91,28 +91,30 @@ impl GuessSummary {
     }
 
 
-    pub fn add_data(&mut self, data: &str) -> () {
+    pub fn add_data(&mut self, data: &str, trim_whitespace: bool) -> () {
         self.datapoints += 1;
 
-        if data.len() == 0 {
+        let working_data = if trim_whitespace { data.trim() } else { data };
+
+        if working_data.len() == 0 {
             self.null += 1;
-        } else if data.parse::<char>().is_ok() {
+        } else if working_data.parse::<char>().is_ok() {
             self.char += 1;
         }
-        if data.len() > self.varchar {
-            self.varchar = data.len();
+        if working_data.len() > self.varchar {
+            self.varchar = working_data.len();
         }
 
 
-        let numeric = data.parse::<f64>().is_ok();
+        let numeric = working_data.parse::<f64>().is_ok();
         if numeric {
             self.float += 1;
                     
-            if data.parse::<i32>().is_ok() {
+            if working_data.parse::<i32>().is_ok() {
                 self.int += 1;
             }
 
-            let split_numeric: Vec<&str> = data.split(".").collect();
+            let split_numeric: Vec<&str> = working_data.split(".").collect();
             if split_numeric.len() == 2 {
                 let decinum = split_numeric[1].len();
                 if decinum > self.numeric.1 {
@@ -142,35 +144,35 @@ mod test_type_guess {
     #[test]
     fn check_null() {
         let mut test = Typer::new();
-        test.add(&"");
+        test.add(&"", 0);
         assert_eq!(test.stats, GuessSummary {datapoints: 1, null: 1, int: 0, float: 0, numeric:(0, 0), char: 0, varchar: 0 });
     }
 
     #[test]
     fn check_int() {
         let mut test = Typer::new();
-        test.add(&"25");
+        test.add(&"25", 0);
         assert_eq!(test.stats, GuessSummary {datapoints: 1, null: 0, int: 1, float: 1, numeric:(2, 0), char: 0, varchar: 2 });
     }
     
     #[test]
     fn check_float() {
         let mut test = Typer::new();
-        test.add(&"0.3258");
+        test.add(&"0.3258", 0);
         assert_eq!(test.stats, GuessSummary {datapoints: 1, null: 0, int: 0, float: 1, numeric:(5, 4), char: 0, varchar: 6 });
     }
 
     #[test]
     fn check_char() {
         let mut test = Typer::new();
-        test.add(&"C");
+        test.add(&"C", 0);
         assert_eq!(test.stats, GuessSummary {datapoints: 1, null: 0, int: 0, float: 0, numeric:(0, 0), char: 1, varchar: 1 });
     }
 
     #[test]
     fn check_varchar() {
         let mut test = Typer::new();
-        test.add(&"test32\n");
+        test.add(&"test32\n", 0);
         assert_eq!(test.stats, GuessSummary {datapoints: 1, null: 0, int: 0, float: 0, numeric:(0, 0), char: 0, varchar: 7 });
     }
     
