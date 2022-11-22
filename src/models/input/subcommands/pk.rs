@@ -1,8 +1,9 @@
 use clap::Parser;
+use pyo3::FromPyObject;
 
 use crate::{calculators::{get_known_keys, get_pk, get_duplicates_count}, file_object::FileObject};
 
-#[derive(Debug, Parser)]
+#[derive(Debug, Parser, FromPyObject)]
 pub struct PKOptions {
     /// Calculate known keys first. Faster if the result has many primary keys.
     #[clap(short)]

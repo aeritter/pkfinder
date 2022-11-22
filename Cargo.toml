@@ -1,6 +1,6 @@
 [package]
 name = "pkfinder"
-version = "0.8.4"
+version = "0.9.1"
 edition = "2021"
 authors = ["Andrew Ritter"]
 description = "Assists with finding the best primary key combination for a given dataset"
@@ -19,3 +19,7 @@ clap = { version = "3.0", features = ["derive"] }
 csv = "1.1.6"
 regex = "1.5.6"
 rayon = "1.5.1"
+pyo3 = { version = "0.17.1", features = ["extension-module"] }
+
+[lib]
+crate-type = ["cdylib"]

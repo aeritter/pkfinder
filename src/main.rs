@@ -1,3 +1,4 @@
+#![feature(iter_advance_by)]
 mod file_object;
 mod common;
 mod calculators;
@@ -32,28 +33,28 @@ fn main() {
         print_details(&options.file, &delimiter).expect("Expected to read file and print details");
     }
     if options.column_numbers {
-        print_column_numbers(&options.file, &delimiter).expect("Expected to read file and print columns");
+        print_column_numbers(&options.file, &delimiter, options.skip).expect("Expected to read file and print columns");
     }
     
 
     match &options.subcommands {
         // Primary Key subcommand
         Some(Subcommands::PK(opt)) => {
-            opt.run(&Arc::new(FileObject::from_file(&options.file, &delimiter, true).unwrap()));
+            opt.run(&Arc::new(FileObject::from_file(&options.file, &delimiter, true, options.skip).unwrap()));
         },
         // Column Set subcommand
         Some(Subcommands::ColumnSet(opt)) => {
-            opt.run(&Arc::new(FileObject::from_file(&options.file, &delimiter, true).unwrap()));         
+            opt.run(&Arc::new(FileObject::from_file(&options.file, &delimiter, true, options.skip).unwrap()));         
         },
         // Typer subcommand
         Some(Subcommands::Typer(opt)) => {
-            opt.run(&Arc::new(FileObject::from_file(&options.file, &delimiter, false).unwrap()));
+            opt.run(&Arc::new(FileObject::from_file(&options.file, &delimiter, false, options.skip).unwrap()));
         },
         None => {
             if !options.properties & !options.column_numbers {
                 println!("No commands given, defaulting to finding primary key combination.\n");
                 // let duplicate_row_count = data.get_duplicate_row_count().unwrap_or(0);
-                println!("\nPrimary Key Combination: {:?}", get_pk(&Arc::new(FileObject::from_file(&options.file, &delimiter, true).unwrap()), 0, vec![]).expect("Couldn't find primary key combination."));
+                println!("\nPrimary Key Combination: {:?}", get_pk(&Arc::new(FileObject::from_file(&options.file, &delimiter, true, options.skip).unwrap()), 0, vec![]).expect("Couldn't find primary key combination."));
             };
         }
     }

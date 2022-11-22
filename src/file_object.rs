@@ -1,8 +1,8 @@
-use std::{ collections::{hash_map::DefaultHasher, HashSet}, error::Error, io::{BufReader, BufRead}, fs::File, hash::{Hash, Hasher}};
+use std::{ collections::{hash_map::DefaultHasher, HashSet}, error::Error, io::{BufReader, BufRead, Seek}, fs::File, hash::{Hash, Hasher}, os::windows::prelude::FileExt};
 use itertools::Itertools;
 use rayon::prelude::*;
 
-use csv::{ReaderBuilder};
+use csv::ReaderBuilder;
 
 
 pub struct FileObject {
@@ -17,11 +17,11 @@ pub struct FileObject {
 
 
 impl FileObject {
-    pub fn from_file(file_path: &str, delimiter: &str, deduplicate: bool) -> Result<FileObject, Box<dyn Error>> {
+    pub fn from_file(file_path: &str, delimiter: &str, deduplicate: bool, skip_lines: usize) -> Result<FileObject, Box<dyn Error>> {
         let original_delimiter = delimiter.to_string();
 
         let internal_delimiter: String;
-        let (headers, mut file_contents) = match FileObject::file_to_vec_simplified(file_path, &original_delimiter) {
+        let (headers, mut file_contents) = match FileObject::file_to_vec_simplified(file_path, &original_delimiter, skip_lines) {
             Ok(data) => {
                 internal_delimiter = original_delimiter.clone();
                 data
@@ -29,7 +29,7 @@ impl FileObject {
             Err(_) => {
                 let new_delimiter = "\0".to_string();
                 internal_delimiter = new_delimiter;
-                match FileObject::file_to_vec(file_path, &original_delimiter, &"\0".to_string()) {
+                match FileObject::file_to_vec(file_path, &original_delimiter, &"\0".to_string(), skip_lines) {
                     Ok(data) => data,
                     Err(_) => panic!("Could not generate list of rows")
                 }
@@ -70,10 +70,11 @@ impl FileObject {
     }
 
 
-    fn file_to_vec_simplified(file_path: &str, current_delimiter: &String) -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
+    fn file_to_vec_simplified(file_path: &str, current_delimiter: &String, skip_lines: usize) -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
         let file_reader = File::open(file_path)?;
         let mut reader = BufReader::new(file_reader)
             .lines();
+        reader.advance_by(skip_lines);
         let headers: Vec<String> = reader.next().unwrap().unwrap().split(current_delimiter).map(|x| x.to_string()).collect();
         let delim_match_num: usize = headers.len();
         let result: Result<Vec<String>, Box<dyn Error>> = reader
@@ -89,12 +90,31 @@ impl FileObject {
         Ok((headers, result?))
     }
 
-    fn file_to_vec(file_path: &str, current_delimiter: &String, new_delimiter: &String) -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
+    fn file_to_vec(file_path: &str, current_delimiter: &String, new_delimiter: &String, skip_lines: usize) -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
+
+        //skip lines
+        let reader = File::open(file_path).unwrap();
+        let mut buf_reader = BufReader::new(reader);
+        let mut buf = String::new();
+        let mut start_position: u64 = 0;
+        let mut lines_to_skip = skip_lines;
+        while let Ok(num) = buf_reader.read_line(&mut buf) {
+            if lines_to_skip == 0 {
+                break;
+            }
+            start_position += num as u64;
+            lines_to_skip -= 1;
+        }
+
+        //begin compiling vec
+        let mut reader = File::open(file_path).unwrap();
+        reader.seek(std::io::SeekFrom::Start(start_position)).unwrap();
+
         let mut csv_reader = ReaderBuilder::new()
             .delimiter(current_delimiter.as_bytes()[0])
             .escape(Some(b'\\'))
             .has_headers(true)
-            .from_reader(File::open(file_path).unwrap());
+            .from_reader(reader);
         let headers: Vec<String> = csv_reader.headers()?.iter().map(|x| x.to_string()).collect();
         let result = csv_reader
             .records()

@@ -1,13 +1,18 @@
 use clap::Parser;
+use pyo3::FromPyObject;
 
 pub mod subcommands;
 use self::subcommands::Subcommands;
 
-#[derive(Debug, Parser)]
+#[derive(Debug, Parser, FromPyObject)]
 #[clap(name = "Primary Key finder", about, version, author)]
 pub struct Config {
     /// Location of the file to process
     pub file: String,
+
+    /// Number of lines at top of file to skip (intended for skipping non-csv data in a csv file)
+    #[clap(short, long, default_value = "0")]
+    pub skip: usize,
 
     /// Print file details (delimiter, column & row counts)
     #[clap(short, long)]

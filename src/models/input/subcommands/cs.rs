@@ -1,9 +1,10 @@
 use clap::Parser;
 use itertools::any;
+use pyo3::FromPyObject;
 
 use crate::{file_object::FileObject, calculators::{get_columnset_duplicates_count, save_columnset_duplicates}};
 
-#[derive(Debug, Parser)]
+#[derive(Debug, Parser, FromPyObject)]
 pub struct ColumnSetOptions {
     /// Find duplicates for the given set of column numbers separated by spaces.
     /// Example: -s 1 3 4 8
