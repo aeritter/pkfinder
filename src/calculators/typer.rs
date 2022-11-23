@@ -35,7 +35,7 @@ impl DatasetTyper {
 
 #[derive(Clone, Default, PartialEq, Debug)]
 pub struct GuessSummary {
-    name: String,
+    pub name: String,
     datapoints: usize,
     null: usize,
     int: usize,
