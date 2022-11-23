@@ -1,6 +1,6 @@
 use clap::Parser;
 use pyo3::FromPyObject;
-use crate::{file_object::FileObject, calculators::get_types};
+use crate::{file_object::FileObject, calculators::DatasetTyper};
 
 #[derive(Debug, Parser, FromPyObject)]
 pub struct TyperOptions {
@@ -15,6 +15,11 @@ pub struct TyperOptions {
 
 impl TyperOptions {
     pub fn run(&self, file_object: &FileObject) {
-        get_types(file_object, self.details, self.trim_whitespace);
+        let typer = DatasetTyper::new(file_object, self.trim_whitespace);
+        if self.details {
+            typer.print_detailed_guesses()
+        } else {
+            typer.print_guesses()
+        }
     }
 }

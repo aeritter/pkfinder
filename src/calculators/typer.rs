@@ -2,65 +2,40 @@ use std::fmt::{Display, self};
 
 use crate::file_object::FileObject;
 
-pub fn get_types(file_object: &FileObject, details: bool, trim_whitespace: bool) {
-    let mut typer_list = vec![Typer::new(); file_object.total_columns];
-    for row in &file_object.data {
-        for (colnum, field) in row.split(&file_object.internal_delimiter).enumerate() {
-            typer_list[colnum].add(field, trim_whitespace)
-        }
-    }
-    if details {
-        for (colnum, answer) in typer_list.iter().enumerate() {
-            println!("{}. {}: {}", colnum+1, file_object.headers[colnum], answer.stats)
-        }
-    } else {
-        for (colnum, answer) in typer_list.iter().enumerate() {
-            println!("{}. {}: {}", colnum+1, file_object.headers[colnum], answer.guess())
-        }
-    }
+pub struct DatasetTyper {
+    pub types_list: Vec<GuessSummary>
 }
 
-#[derive(Clone, Default)]
-pub struct Typer {
-    pub stats: GuessSummary
-}
-
-impl Typer {
-    pub fn new() -> Self {
-        Self {
-            stats: GuessSummary::new()
-        }
-    }
-
-    pub fn add(&mut self, data: &str, trim_whitespace: bool) {
-        self.stats.add_data(data, trim_whitespace);
-    }
-
-    pub fn guess(&self) -> String {
-        if self.stats.null == self.stats.datapoints {
-            return "null".to_string()
-        }
-        if self.stats.int == self.stats.datapoints-self.stats.null {
-            return "int".to_string()
-        }
-        if self.stats.float == self.stats.datapoints-self.stats.null {
-            if self.stats.numeric.0 > 0 {
-                let warning = if self.stats.numeric.2 { " // Lines contain scientific notation, ensure the file has not been saved in Excel which may have caused the format to change." } else {""};
-                return format!("numeric({}, {}){}", self.stats.numeric.0, self.stats.numeric.1, warning)
+impl DatasetTyper {
+    pub fn new(file_object: &FileObject, trim_whitespace: bool) -> Self {
+        let mut typer_list: Vec<GuessSummary> = file_object.headers.iter().map(|x| GuessSummary::new(x.to_string())).collect();
+        for row in &file_object.data {
+            for (colnum, field) in row.split(&file_object.internal_delimiter).enumerate() {
+                typer_list[colnum].add(field, trim_whitespace)
             }
-            return "float".to_string()
         }
-        if self.stats.char == self.stats.datapoints-self.stats.null {
-            return "char".to_string()
+        Self {
+            types_list: typer_list
         }
-        return format!("varchar({})", self.stats.varchar)
+    }
+    
+    pub fn print_guesses(&self) {
+        for (colnum, answer) in self.types_list.iter().enumerate() {
+            println!("{}. {}: {}", colnum+1, answer.name, answer.guess())
+        }
+    }
+
+    pub fn print_detailed_guesses(&self) {
+        for (colnum, answer) in self.types_list.iter().enumerate() {
+            println!("{}. {}: {}", colnum+1, answer.name, answer)
+        }
     }
 }
-
 
 
 #[derive(Clone, Default, PartialEq, Debug)]
 pub struct GuessSummary {
+    name: String,
     datapoints: usize,
     null: usize,
     int: usize,
@@ -71,7 +46,7 @@ pub struct GuessSummary {
 }
 
 impl GuessSummary {
-    pub fn new() -> Self {
+    pub fn new(name: String) -> Self {
         let datapoints: usize = 0;
         let null: usize = 0;
         let int: usize = 0;
@@ -81,6 +56,7 @@ impl GuessSummary {
         let varchar: usize = 0;
 
         GuessSummary {
+            name,
             datapoints,
             null,
             int,
@@ -91,8 +67,7 @@ impl GuessSummary {
         }
     }
 
-
-    pub fn add_data(&mut self, data: &str, trim_whitespace: bool) -> () {
+    pub fn add(&mut self, data: &str, trim_whitespace: bool) -> () {
         self.datapoints += 1;
 
         let working_data = if trim_whitespace { data.trim() } else { data };
@@ -136,6 +111,25 @@ impl GuessSummary {
         }
     }
 
+    pub fn guess(&self) -> String {
+        if self.null == self.datapoints {
+            return "null".to_string()
+        }
+        if self.int == self.datapoints-self.null {
+            return "int".to_string()
+        }
+        if self.float == self.datapoints-self.null {
+            if self.numeric.0 > 0 {
+                if self.numeric.2 { println!("// Fields in the following column contain scientific notation, file may have been opened and saved from Excel.") };
+                return format!("numeric({}, {})", self.numeric.0, self.numeric.1)
+            }
+            return "float".to_string()
+        }
+        if self.char == self.datapoints-self.null {
+            return "char".to_string()
+        }
+        return format!("varchar({})", self.varchar)
+    }
 }
 
 impl Display for GuessSummary {
@@ -152,37 +146,37 @@ mod test_type_guess {
 
     #[test]
     fn check_null() {
-        let mut test = Typer::new();
-        test.add(&"", 0);
-        assert_eq!(test.stats, GuessSummary {datapoints: 1, null: 1, int: 0, float: 0, numeric:(0, 0), char: 0, varchar: 0 });
+        let mut test = GuessSummary::new("null".to_string());
+        test.add(&"", false);
+        assert_eq!(test, GuessSummary {name: "null".to_string(), datapoints: 1, null: 1, int: 0, float: 0, numeric:(0, 0, false), char: 0, varchar: 0 });
     }
 
     #[test]
     fn check_int() {
-        let mut test = Typer::new();
-        test.add(&"25", 0);
-        assert_eq!(test.stats, GuessSummary {datapoints: 1, null: 0, int: 1, float: 1, numeric:(2, 0), char: 0, varchar: 2 });
+        let mut test = GuessSummary::new("int".to_string());
+        test.add(&"25", false);
+        assert_eq!(test, GuessSummary {name: "int".to_string(), datapoints: 1, null: 0, int: 1, float: 1, numeric:(2, 0, false), char: 0, varchar: 2 });
     }
     
     #[test]
     fn check_float() {
-        let mut test = Typer::new();
-        test.add(&"0.3258", 0);
-        assert_eq!(test.stats, GuessSummary {datapoints: 1, null: 0, int: 0, float: 1, numeric:(5, 4), char: 0, varchar: 6 });
+        let mut test = GuessSummary::new("float".to_string());
+        test.add(&"0.3258", false);
+        assert_eq!(test, GuessSummary {name: "float".to_string(), datapoints: 1, null: 0, int: 0, float: 1, numeric:(5, 4, false), char: 0, varchar: 6 });
     }
 
     #[test]
     fn check_char() {
-        let mut test = Typer::new();
-        test.add(&"C", 0);
-        assert_eq!(test.stats, GuessSummary {datapoints: 1, null: 0, int: 0, float: 0, numeric:(0, 0), char: 1, varchar: 1 });
+        let mut test = GuessSummary::new("char".to_string());
+        test.add(&"C", false);
+        assert_eq!(test, GuessSummary {name: "char".to_string(), datapoints: 1, null: 0, int: 0, float: 0, numeric:(0, 0, false), char: 1, varchar: 1 });
     }
 
     #[test]
     fn check_varchar() {
-        let mut test = Typer::new();
-        test.add(&"test32\n", 0);
-        assert_eq!(test.stats, GuessSummary {datapoints: 1, null: 0, int: 0, float: 0, numeric:(0, 0), char: 0, varchar: 7 });
+        let mut test = GuessSummary::new("varchar".to_string());
+        test.add(&"test32\n", false);
+        assert_eq!(test, GuessSummary {name: "varchar".to_string(), datapoints: 1, null: 0, int: 0, float: 0, numeric:(0, 0, false), char: 0, varchar: 7 });
     }
     
 }

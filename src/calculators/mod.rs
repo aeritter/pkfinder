@@ -10,5 +10,5 @@ pub use combination_duplicate_count::{get_columnset_duplicates_count, save_colum
 pub use known_keys::get_known_keys;
 pub use primary_keys::get_pk;
 pub use pk_duplicate_count::get_duplicates_count;
-pub use typer::get_types;
+pub use typer::DatasetTyper;
 pub use determine_delimiter::determine_delimiter;
