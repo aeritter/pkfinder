@@ -45,7 +45,8 @@ impl Typer {
         }
         if self.stats.float == self.stats.datapoints-self.stats.null {
             if self.stats.numeric.0 > 0 {
-                return format!("numeric({}, {})", self.stats.numeric.0, self.stats.numeric.1)
+                let warning = if self.stats.numeric.2 { " // Lines contain scientific notation, ensure the file has not been saved in Excel which may have caused the format to change." } else {""};
+                return format!("numeric({}, {}){}", self.stats.numeric.0, self.stats.numeric.1, warning)
             }
             return "float".to_string()
         }
@@ -64,7 +65,7 @@ pub struct GuessSummary {
     null: usize,
     int: usize,
     float: usize,
-    numeric: (usize, usize),
+    numeric: (usize, usize, bool), // (total digits, max digits after decimal, contains scientific notation (E+))
     char: usize,
     varchar: usize,
 }
@@ -75,7 +76,7 @@ impl GuessSummary {
         let null: usize = 0;
         let int: usize = 0;
         let float: usize = 0;
-        let numeric: (usize, usize) = (0, 0);
+        let numeric: (usize, usize, bool) = (0, 0, false);
         let char: usize = 0;
         let varchar: usize = 0;
 
@@ -114,7 +115,14 @@ impl GuessSummary {
                 self.int += 1;
             }
 
-            let split_numeric: Vec<&str> = working_data.split(".").collect();
+            let split_numeric: Vec<&str>;
+            let converted_str = working_data.parse::<f64>().unwrap().to_string();
+            if working_data.contains("E+") {
+                split_numeric = converted_str.split(".").collect();
+                self.numeric.2 = true
+            } else {
+                split_numeric = working_data.split(".").collect();
+            }
             if split_numeric.len() == 2 {
                 let decinum = split_numeric[1].len();
                 if decinum > self.numeric.1 {
@@ -132,7 +140,8 @@ impl GuessSummary {
 
 impl Display for GuessSummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Stats - (null: {}, int: {}, float: {}, numeric: ({}, {}), char: {}, max length: {})", self.null, self.int, self.float, self.numeric.0, self.numeric.1, self.char, self.varchar)
+        let warning = if self.numeric.2 { " // Scientific notation found." } else {""};
+        write!(f, "Stats - (null: {}, int: {}, float: {}, numeric: ({}, {}), char: {}, max length: {}){}", self.null, self.int, self.float, self.numeric.0, self.numeric.1, self.char, self.varchar, warning)
     }
 }
 
