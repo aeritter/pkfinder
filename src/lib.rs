@@ -3,17 +3,9 @@ mod file_object;
 mod common;
 mod calculators;
 mod models;
-use std::path::Path;
 use std::sync::Arc;
-use std::time::SystemTime;
-use clap::builder;
-use pyo3::exceptions::PyFileNotFoundError;
-use pyo3::types::PyList;
 
 use crate::calculators::{get_pk, determine_delimiter, get_known_keys};
-use crate::common::{print_details, print_column_numbers};
-use crate::models::input::Config;
-use crate::models::input::subcommands::Subcommands;
 use crate::file_object::FileObject;
 use pyo3::prelude::*;
 
@@ -40,7 +32,7 @@ fn pkfinder(py: Python, m: &PyModule) -> PyResult<()> {
                 Some(x) => x,
                 None => &delim
             };
-            let fobject = Arc::new(FileObject::from_file(&from_file, &delimiter, true, 0).unwrap());
+            let fobject = Arc::new(FileObject::from_file(&from_file, &delimiter, true, 0, false).unwrap());
             return Ok(PKFinder { file_object: fobject })
         }
 

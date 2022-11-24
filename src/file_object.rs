@@ -13,15 +13,16 @@ pub struct FileObject {
     pub total_columns: usize,
     pub headers: Vec<String>,
     pub total_rows: usize,
+    pub debug: bool
 }
 
 
 impl FileObject {
-    pub fn from_file(file_path: &str, delimiter: &str, deduplicate: bool, skip_lines: usize) -> Result<FileObject, Box<dyn Error>> {
+    pub fn from_file(file_path: &str, delimiter: &str, deduplicate: bool, skip_lines: usize, debug: bool) -> Result<FileObject, Box<dyn Error>> {
         let original_delimiter = delimiter.to_string();
 
         let internal_delimiter: String;
-        let (headers, mut file_contents) = match FileObject::file_to_vec_simplified(file_path, &original_delimiter, skip_lines) {
+        let (headers, mut file_contents) = match FileObject::file_to_vec_simplified(file_path, &original_delimiter, skip_lines, debug) {
             Ok(data) => {
                 internal_delimiter = original_delimiter.clone();
                 data
@@ -29,7 +30,7 @@ impl FileObject {
             Err(_) => {
                 let new_delimiter = "\0".to_string();
                 internal_delimiter = new_delimiter;
-                match FileObject::file_to_vec(file_path, &original_delimiter, &"\0".to_string(), skip_lines) {
+                match FileObject::file_to_vec(file_path, &original_delimiter, &"\0".to_string(), skip_lines, debug) {
                     Ok(data) => data,
                     Err(_) => panic!("Could not generate list of rows")
                 }
@@ -65,12 +66,13 @@ impl FileObject {
                 total_columns: total_columns,
                 headers: headers,
                 total_rows: num_of_rows,
+                debug
             }
         )
     }
 
 
-    fn file_to_vec_simplified(file_path: &str, current_delimiter: &String, skip_lines: usize) -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
+    fn file_to_vec_simplified(file_path: &str, current_delimiter: &String, skip_lines: usize, debug: bool) -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
         let file_reader = File::open(file_path)?;
         let mut reader = BufReader::new(file_reader)
             .lines();
@@ -90,7 +92,7 @@ impl FileObject {
         Ok((headers, result?))
     }
 
-    fn file_to_vec(file_path: &str, current_delimiter: &String, new_delimiter: &String, skip_lines: usize) -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
+    fn file_to_vec(file_path: &str, current_delimiter: &String, new_delimiter: &String, skip_lines: usize, debug: bool) -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
 
         //skip lines
         let reader = File::open(file_path).unwrap();
@@ -116,14 +118,30 @@ impl FileObject {
             .has_headers(true)
             .from_reader(reader);
         let headers: Vec<String> = csv_reader.headers()?.iter().map(|x| x.to_string()).collect();
+        let mut bad_rows: Vec<String> = Vec::new();
         let result = csv_reader
             .records()
+            .filter_map(|rec| 
+                match rec {
+                    Ok(x) => Some(x),
+                    Err(x) => { bad_rows.push(x.to_string()); return None }
+                }
+            )
             .map(|record| record
-                .unwrap()
                 .iter()
                 .join(&new_delimiter)
             )
             .collect();
+        if bad_rows.len() > 0 {
+            if !debug {
+                println!("Encountered problems with {} rows. For more details, use the -d flag.\n", bad_rows.len());
+            } else {
+                println!("Encountered problems with the following rows:");
+                for bad_row in bad_rows {
+                    println!("{}", bad_row)
+                }
+            }
+        } 
         Ok((headers, result))   
     }
 

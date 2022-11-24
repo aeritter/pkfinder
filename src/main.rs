@@ -40,21 +40,21 @@ fn main() {
     match &options.subcommands {
         // Primary Key subcommand
         Some(Subcommands::PK(opt)) => {
-            opt.run(&Arc::new(FileObject::from_file(&options.file, &delimiter, true, options.skip).unwrap()));
+            opt.run(&Arc::new(FileObject::from_file(&options.file, &delimiter, true, options.skip, options.debug).unwrap()));
         },
         // Column Set subcommand
         Some(Subcommands::ColumnSet(opt)) => {
-            opt.run(&Arc::new(FileObject::from_file(&options.file, &delimiter, true, options.skip).unwrap()));         
+            opt.run(&Arc::new(FileObject::from_file(&options.file, &delimiter, true, options.skip, options.debug).unwrap()));         
         },
         // Typer subcommand
         Some(Subcommands::Typer(opt)) => {
-            opt.run(&Arc::new(FileObject::from_file(&options.file, &delimiter, false, options.skip).unwrap()));
+            opt.run(&Arc::new(FileObject::from_file(&options.file, &delimiter, false, options.skip, options.debug).unwrap()));
         },
         None => {
             if !options.properties & !options.column_numbers {
                 println!("No commands given, defaulting to finding primary key combination.\n");
                 // let duplicate_row_count = data.get_duplicate_row_count().unwrap_or(0);
-                println!("\nPrimary Key Combination: {:?}", get_pk(&Arc::new(FileObject::from_file(&options.file, &delimiter, true, options.skip).unwrap()), 0, vec![]).expect("Couldn't find primary key combination."));
+                println!("\nPrimary Key Combination: {:?}", get_pk(&Arc::new(FileObject::from_file(&options.file, &delimiter, true, options.skip, options.debug).unwrap()), 0, vec![]).expect("Couldn't find primary key combination."));
             };
         }
     }

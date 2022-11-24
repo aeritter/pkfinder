@@ -1,6 +1,6 @@
 [package]
 name = "pkfinder"
-version = "0.9.4"
+version = "0.9.5"
 edition = "2021"
 authors = ["Andrew Ritter"]
 description = "Assists with finding the best primary key combination for a given dataset"
