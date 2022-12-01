@@ -26,6 +26,7 @@ impl DatasetTyper {
     }
 
     pub fn print_detailed_guesses(&self) {
+        println!("Number of Datapoints: {}", self.types_list[0].datapoints);
         for (colnum, answer) in self.types_list.iter().enumerate() {
             println!("{}. {}: {}", colnum+1, answer.name, answer)
         }
