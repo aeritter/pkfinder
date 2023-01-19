@@ -23,11 +23,13 @@ fn pkfinder(py: Python, m: &PyModule) -> PyResult<()> {
         // Loads the file into memory so it can be worked on.
         #[new]
         fn new(
-            from_file: Option<&str>,
-            delimiter: Option<&str>
+            from_file: &str,
+            delimiter: Option<&str>,
+            skip_lines: Option<&str>
         ) -> PyResult<Self> {
-            let from_file = from_file.expect("Must provide path to file");
-            let delim = determine_delimiter(&from_file).unwrap();
+            // let from_file = from_file.expect("Must provide path to file");
+            let skip_lines = if skip_lines.is_some() {skip_lines.unwrap().parse::<usize>()} else {Ok(0 as usize)};
+            let delim = determine_delimiter(&from_file, &skip_lines.unwrap()).unwrap();
             let delimiter = match delimiter {
                 Some(x) => x,
                 None => &delim

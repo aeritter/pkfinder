@@ -3,9 +3,11 @@ use std::{io::{BufReader, BufRead}, fs::File, collections::HashMap, error::Error
 use regex::Regex;
 
 
-pub fn determine_delimiter(file_path: &str) -> Result<String, Box<dyn Error>> {
+pub fn determine_delimiter(file_path: &str, lines_to_skip: &usize) -> Result<String, Box<dyn Error>> {
     let reader = BufReader::new(File::open(file_path)?);
-    let delim_finding_data: Vec<String> = reader.lines().take(5).map(|x| x.expect("Expected UTF-8 file encoding")).collect();
+    let mut reader_lines = reader.lines();
+    reader_lines.advance_by(*lines_to_skip);
+    let delim_finding_data: Vec<String> = reader_lines.take(5).map(|x| x.expect("Expected UTF-8 file encoding")).collect();
 
     let original_delimiter = match find_delimiter_method_1(&delim_finding_data) {
         Ok(delim) => delim,

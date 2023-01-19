@@ -1,4 +1,4 @@
-use std::{ collections::{hash_map::DefaultHasher, HashSet}, error::Error, io::{BufReader, BufRead, Seek}, fs::File, hash::{Hash, Hasher}, os::windows::prelude::FileExt};
+use std::{ error::Error, io::{BufReader, BufRead, Seek}, fs::File};
 use itertools::Itertools;
 use rayon::prelude::*;
 
