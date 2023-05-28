@@ -169,6 +169,9 @@ impl FileObject {
         column_numbers.iter().map(|x| self.headers[*x].clone()).collect()
     }
 
+    pub fn string_to_header_index(&self, column_name: &String) -> Option<usize> {
+        self.headers.iter().position(|h| h == column_name)
+    }
 
 
 }
