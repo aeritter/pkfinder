@@ -8,7 +8,7 @@ use crate::{
 
 #[derive(Debug, Parser, FromPyObject)]
 pub struct PKOptions {
-    /// Calculate known keys first. Faster if the result has many primary keys.
+    /// Calculate known keys first. Faster if the result has many primary keys. (looks for which columns cannot be omitted without increasing duplicate count)
     #[clap(short)]
     pub calculate_known_keys: bool,
     /// Calculate duplicate count for every combination up to max_combination_size and write to the specified file.
