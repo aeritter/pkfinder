@@ -74,9 +74,9 @@ impl FileObject {
 
     fn file_to_vec_simplified(file_path: &str, current_delimiter: &String, skip_lines: usize, debug: bool) -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
         let file_reader = File::open(file_path)?;
-        let mut reader = BufReader::new(file_reader)
+        let reader = BufReader::new(file_reader)
             .lines();
-        reader.advance_by(skip_lines);
+        let mut reader = reader.skip(skip_lines);
         let headers: Vec<String> = reader.next().unwrap().unwrap().split(current_delimiter).map(|x| x.to_string()).collect();
         let delim_match_num: usize = headers.len();
         let result: Result<Vec<String>, Box<dyn Error>> = reader

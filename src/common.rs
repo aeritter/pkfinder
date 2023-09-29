@@ -28,8 +28,8 @@ pub fn print_details(file_path: &str, delimiter: &str) -> Result<(), Box<dyn Err
 
 
 pub fn print_column_numbers(file_path: &str, delimiter: &str, skip_lines: usize) -> Result<(), Box<dyn Error>> {
-    let mut reader = BufReader::new(File::open(file_path)?).lines();
-    reader.advance_by(skip_lines);
+    let reader = BufReader::new(File::open(file_path)?).lines();
+    let reader = reader.skip(skip_lines);
     let header: String = reader.take(1).map(|x| x.expect("Expected UTF-8 file encoding")).collect();
     println!();
     for (index, column) in header.split(delimiter).enumerate() {
