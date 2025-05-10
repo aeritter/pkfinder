@@ -30,6 +30,10 @@ pub struct Config {
     #[clap(short, long)]
     pub debug: bool,
 
+    /// Specify delimiter/separator character (\t for tab)
+    #[clap(long)]
+    pub delimiter: Option<String>,
+
     #[clap(subcommand)]
     pub subcommands: Option<Subcommands>
 }

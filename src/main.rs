@@ -25,8 +25,13 @@ fn main() {
     }
     rayon::ThreadPoolBuilder::new().num_threads(options.threads).build_global().unwrap();
 
-    
-    let delimiter = determine_delimiter(&options.file, &options.skip).expect("Failed while attempting to find delimiter");
+    let delimiter: String;
+    match &options.delimiter {
+        Some(x) => {delimiter = x.to_string();},
+        None => {
+            delimiter = determine_delimiter(&options.file, &options.skip).expect("Failed while attempting to find delimiter");
+        }
+    }
     
     if options.properties {
         print_details(&options.file, &delimiter).expect("Expected to read file and print details");
